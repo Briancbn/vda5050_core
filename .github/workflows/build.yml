@@ -19,6 +19,7 @@ jobs:
         test_type: [gcc, clang, gcc-tsan, gcc-asan]
     env:
       ISOLATION: "shell"
+      UPSTREAM_WORKSPACE: 'github:sauk2/vda5050_interfaces#throwaway/temp github.com:eclipse-paho/paho.mqtt.cpp#v1.5.0'
     runs-on: ubuntu-latest
     container:
       image: ros:${{ matrix.distro }}-ros-core
