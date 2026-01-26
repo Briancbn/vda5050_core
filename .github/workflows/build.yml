@@ -8,6 +8,7 @@ on:
       - main
       - develop
       - feature/add-asan-tsan-rolling
+      - feature/paho-cpp-150
 
 jobs:
   industrial_ci:
