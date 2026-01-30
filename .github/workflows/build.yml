@@ -29,12 +29,10 @@ jobs:
       image: ros:${{ matrix.distro }}-ros-core
     steps:
       - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: |
-          apt-get update -qq -y
-          apt-get install libpaho-mqtt-dev libpaho-mqttpp-dev libfmt-dev mosquitto -qq -y
       - name: Start MQTT broker
         run: |
+          apt-get update -qq -y
+          apt-get install mosquitto -qq -y
           mosquitto -d
           sleep 2  # Wait for broker to start
 
