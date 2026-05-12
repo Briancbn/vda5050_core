@@ -24,16 +24,12 @@
 #include <thread>
 #include <vector>
 
-#include "vda5050_core/logger/logger.hpp"
-
 #include "vda5050_core/master/heartbeat.hpp"
 #include "vda5050_core/master/standard_names.hpp"
 
-using vda5050_core::master::ConnectionHeartbeatInterval;
-using vda5050_core::master::HeartbeatListener;
 using vda5050_core::master::HeartbeatState;
 
-class MockHeartbeatListener : public HeartbeatListener
+class MockHeartbeatListener : public vda5050_core::master::HeartbeatListener
 {
 public:
   MockHeartbeatListener(
@@ -42,6 +38,33 @@ public:
   : HeartbeatListener(id, heartbeat_interval, disconnection_callback),
     time_to_skip_(time_to_skip)
   {
+    // ASSERT_NEAR(
+    //   std::chrono::duration_cast<std::chrono::seconds>(
+    //     get_current_time().time_since_epoch())
+    //     .count(),
+    //   std::chrono::duration_cast<std::chrono::seconds>(
+    //     std::chrono::steady_clock::now().time_since_epoch())
+    //     .count(),
+    //   time_to_skip);
+
+    // ASSERT_NEAR(
+    //   std::chrono::duration_cast<std::chrono::seconds>(
+    //     get_last_connection_report().time_since_epoch())
+    //     .count(),
+    //   std::chrono::duration_cast<std::chrono::seconds>(
+    //     std::chrono::steady_clock::now().time_since_epoch())
+    //     .count(),
+    //   time_to_skip);
+
+    // ASSERT_NEAR(
+    //   std::chrono::duration_cast<std::chrono::seconds>(
+    //     get_last_connection_report().time_since_epoch())
+    //     .count(),
+    //   std::chrono::duration_cast<std::chrono::seconds>(
+    //     get_current_time().time_since_epoch())
+    //     .count(),
+    //   1e9);
+
     start_connection_heartbeat();
   }
 
@@ -77,12 +100,12 @@ public:
 TEST(HeartbeatListenerTest, HeartbeatListenerInit)
 {
   auto hb_listener = MockHeartbeatListener(
-    "test_listener", ConnectionHeartbeatInterval,
+    "test_listener", vda5050_core::master::ConnectionHeartbeatInterval,
     [&]() {
       // Timeout callback
       VDA5050_INFO("Timeout callback");
     },
-    ConnectionHeartbeatInterval - 1);
+    vda5050_core::master::ConnectionHeartbeatInterval - 1);
 
   ASSERT_EQ(hb_listener.get_state(), HeartbeatState::RUNNING);
   ASSERT_NO_THROW(hb_listener.stop_connection_heartbeat());
@@ -92,12 +115,12 @@ TEST(HeartbeatListenerTest, HeartbeatListenerInit)
 TEST(HeartbeatListenerTest, HeartbeatReceivedNoTimeout)
 {
   auto hb_listener = MockHeartbeatListener(
-    "test_listener", ConnectionHeartbeatInterval,
+    "test_listener", vda5050_core::master::ConnectionHeartbeatInterval,
     [&]() {
       // Timeout callback
       VDA5050_INFO("Timeout callback");
     },
-    ConnectionHeartbeatInterval - 1);
+    vda5050_core::master::ConnectionHeartbeatInterval - 1);
 
   ASSERT_EQ(hb_listener.get_state(), HeartbeatState::RUNNING);
   // std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -110,7 +133,7 @@ TEST(HeartbeatListenerTest, HeartbeatReceivedNoTimeout)
     std::chrono::duration_cast<std::chrono::seconds>(
       std::chrono::system_clock::now().time_since_epoch())
       .count(),
-    ConnectionHeartbeatInterval - 1);
+    vda5050_core::master::ConnectionHeartbeatInterval - 1);
 
   ASSERT_NO_THROW(hb_listener.stop_connection_heartbeat());
 }
@@ -119,7 +142,7 @@ TEST(HeartbeatListenerTest, HeartbeatNotReceivedTimeout)
 {
   std::atomic_bool heartbeat_failed{false};
   auto hb_listener = std::make_unique<MockHeartbeatListener>(
-    "test_listener", ConnectionHeartbeatInterval,
+    "test_listener", vda5050_core::master::ConnectionHeartbeatInterval,
     [&heartbeat_failed]() {
       // Timeout callback
       VDA5050_INFO("Timeout callback");
@@ -132,7 +155,7 @@ TEST(HeartbeatListenerTest, HeartbeatNotReceivedTimeout)
         std::to_string(heartbeat_failed.load()));
       // ASSERT_TRUE(heartbeat_failed->load());
     },
-    ConnectionHeartbeatInterval + 1);
+    vda5050_core::master::ConnectionHeartbeatInterval + 1);
   hb_listener->trigger_timeout();
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   ASSERT_NO_THROW(hb_listener.reset());
@@ -143,13 +166,13 @@ TEST(HeartbeatListenerTest, HeartbeatReceivedTimeout)
 {
   std::atomic_bool heartbeat_failed{false};
   auto hb_listener = std::make_unique<MockHeartbeatListener>(
-    "test_listener", ConnectionHeartbeatInterval,
+    "test_listener", vda5050_core::master::ConnectionHeartbeatInterval,
     [&heartbeat_failed]() {
       // Timeout callback
       VDA5050_INFO("Timeout callback");
       heartbeat_failed.store(true);
     },
-    ConnectionHeartbeatInterval + 1);
+    vda5050_core::master::ConnectionHeartbeatInterval + 1);
 
   hb_listener->trigger_timeout();
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -165,7 +188,7 @@ TEST(HeartbeatListenerTest, GracefulShutdownDoesNotBlock)
 
   // Use a short interval but time_to_skip that won't cause immediate timeout
   auto hb_listener = std::make_unique<MockHeartbeatListener>(
-    "test_listener", ConnectionHeartbeatInterval,
+    "test_listener", vda5050_core::master::ConnectionHeartbeatInterval,
     [&callback_called]() { callback_called.store(true); },
     0);  // time_to_skip = 0, so no immediate timeout
 
@@ -197,7 +220,7 @@ TEST(HeartbeatListenerTest, StateIsRunningWhileCallbackExecutes)
   std::atomic<MockHeartbeatListener*> listener_ptr{nullptr};
 
   auto hb_listener = std::make_unique<MockHeartbeatListener>(
-    "test_listener", ConnectionHeartbeatInterval,
+    "test_listener", vda5050_core::master::ConnectionHeartbeatInterval,
     [&callback_started, &callback_finished, &was_running_during_callback,
      &listener_ptr]() {
       callback_started.store(true);
@@ -215,7 +238,8 @@ TEST(HeartbeatListenerTest, StateIsRunningWhileCallbackExecutes)
 
       callback_finished.store(true);
     },
-    ConnectionHeartbeatInterval + 1);  // Causes immediate timeout
+    vda5050_core::master::ConnectionHeartbeatInterval +
+      1);  // Causes immediate timeout
 
   listener_ptr = hb_listener.get();
 
@@ -246,7 +270,8 @@ TEST(HeartbeatListenerTest, StateIsStoppedOnlyAfterFullStop)
   std::atomic<HeartbeatState> state_during_stop{HeartbeatState::RUNNING};
 
   auto hb_listener = std::make_unique<MockHeartbeatListener>(
-    "test_listener", ConnectionHeartbeatInterval, []() { /* No-op callback */ },
+    "test_listener", vda5050_core::master::ConnectionHeartbeatInterval,
+    []() { /* No-op callback */ },
     0);  // No immediate timeout
 
   ASSERT_EQ(hb_listener->get_state(), HeartbeatState::RUNNING);
@@ -282,7 +307,8 @@ TEST(HeartbeatListenerTest, StateIsStoppedOnlyAfterFullStop)
 TEST(HeartbeatListenerTest, MultipleStopCallsSafe)
 {
   auto hb_listener = std::make_unique<MockHeartbeatListener>(
-    "test_listener", ConnectionHeartbeatInterval, []() { /* No-op */ }, 0);
+    "test_listener", vda5050_core::master::ConnectionHeartbeatInterval,
+    []() { /* No-op */ }, 0);
 
   ASSERT_EQ(hb_listener->get_state(), HeartbeatState::RUNNING);
 
@@ -298,7 +324,7 @@ TEST(HeartbeatListenerTest, MultipleStopCallsSafe)
 TEST(HeartbeatListenerTest, MultipleStartCallsDoNotCreateMultipleThreads)
 {
   std::atomic<int> callback_count{0};
-  HeartbeatListener hb_listener(
+  vda5050_core::master::HeartbeatListener hb_listener(
     "test_listener", 1,  // 1 second interval
     [&callback_count]() { callback_count.fetch_add(1); });
 
@@ -329,7 +355,7 @@ TEST(HeartbeatListenerTest, ConcurrentStartCallsDoNotCreateMultipleThreads)
 {
   std::atomic<int> callback_count{0};
 
-  HeartbeatListener hb_listener(
+  vda5050_core::master::HeartbeatListener hb_listener(
     "test_listener", 1,  // 1 second interval
     [&callback_count]() { callback_count.fetch_add(1); });
 
@@ -364,7 +390,8 @@ TEST(HeartbeatListenerTest, ConcurrentStartCallsDoNotCreateMultipleThreads)
 
 TEST(HeartbeatListenerTest, ConcurrentStopCallsSafe)
 {
-  HeartbeatListener hb_listener("test_listener", 1, []() { /* No-op */ });
+  vda5050_core::master::HeartbeatListener hb_listener(
+    "test_listener", 1, []() { /* No-op */ });
 
   hb_listener.start_connection_heartbeat();
   ASSERT_EQ(hb_listener.get_state(), HeartbeatState::RUNNING);

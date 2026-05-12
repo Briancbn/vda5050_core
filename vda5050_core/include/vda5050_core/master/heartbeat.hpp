@@ -25,10 +25,9 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include "vda5050_core/logger/logger.hpp"
 
-namespace vda5050_core {
-
-namespace master {
+namespace vda5050_core::master {
 
 /**
  * @brief Heartbeat listener lifecycle states
@@ -125,7 +124,6 @@ private:
   std::function<void()> disconnection_callback_;
 };
 
-}  // namespace master
-}  // namespace vda5050_core
+}  // namespace vda5050_core::master
 
 #endif  // VDA5050_CORE__MASTER__HEARTBEAT_HPP_

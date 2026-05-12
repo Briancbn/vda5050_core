@@ -16,18 +16,15 @@
  * limitations under the License.
  */
 
+#include "vda5050_core/master/heartbeat.hpp"
+
 #include <cmath>
 #include <utility>
 
 #include "vda5050_core/logger/logger.hpp"
 
-#include "vda5050_core/master/heartbeat.hpp"
+namespace vda5050_core::master {
 
-namespace vda5050_core {
-
-namespace master {
-
-//=============================================================================
 HeartbeatListener::HeartbeatListener(
   const std::string& id, const int heartbeat_interval,
   std::function<void()> disconnection_callback)
@@ -37,17 +34,14 @@ HeartbeatListener::HeartbeatListener(
   last_connection_report_(std::chrono::system_clock::now()),
   disconnection_callback_(std::move(disconnection_callback))
 {
-  // Nothing to do here ...
 }
 
-//=============================================================================
 HeartbeatListener::~HeartbeatListener()
 {
   stop_connection_heartbeat();
   VDA5050_INFO("[" + id_ + "] Deconstructing HeartbeatListener");
 }
 
-//=============================================================================
 void HeartbeatListener::start_connection_heartbeat()
 {
   std::lock_guard<std::mutex> lock(state_mutex_);
@@ -58,12 +52,22 @@ void HeartbeatListener::start_connection_heartbeat()
     return;
   }
 
+  // Reset the last-report timestamp so a long gap between construction
+  // (or previous stop) and start doesn't fire an immediate timeout.
+  // Use std::chrono::system_clock::now() directly (not get_current_time())
+  // because get_current_time() is virtual and may be mocked for testing
+  // — tests inject a time skew there to simulate timeouts; resetting the
+  // timestamp via the same path would defeat their setup.
+  {
+    std::lock_guard<std::mutex> ts_lock(last_connection_report_mutex_);
+    last_connection_report_ = std::chrono::system_clock::now();
+  }
+
   VDA5050_INFO("Starting Connection heartbeat listener");
   state_ = HeartbeatState::RUNNING;
   connection_thread_ = std::thread(&HeartbeatListener::listen, this);
 }
 
-//=============================================================================
 void HeartbeatListener::stop_connection_heartbeat()
 {
   std::thread conn_thread_to_join;
@@ -98,7 +102,6 @@ void HeartbeatListener::stop_connection_heartbeat()
   VDA5050_INFO("Stopped Connection heartbeat listener");
 }
 
-//=============================================================================
 void HeartbeatListener::received_connection()
 {
   // Check state with proper synchronization
@@ -113,7 +116,6 @@ void HeartbeatListener::received_connection()
   message_received_.notify_all();
 }
 
-//=============================================================================
 std::chrono::system_clock::time_point
 HeartbeatListener::get_last_connection_report()
 {
@@ -121,33 +123,35 @@ HeartbeatListener::get_last_connection_report()
   return last_connection_report_;
 }
 
-//=============================================================================
 HeartbeatState HeartbeatListener::get_state()
 {
   std::lock_guard<std::mutex> lock(state_mutex_);
   return state_;
 }
 
-//=============================================================================
 std::chrono::system_clock::time_point HeartbeatListener::get_current_time()
 {
   return std::chrono::system_clock::now();
 }
 
-//=============================================================================
 int HeartbeatListener::get_check_interval()
 {
   return heartbeat_interval_;
 }
 
-//=============================================================================
 bool HeartbeatListener::is_stop_requested()
 {
   std::lock_guard<std::mutex> lock(state_mutex_);
-  return state_ == HeartbeatState::STOPPING;
+  // The listen thread should exit unless the listener is actively
+  // RUNNING. Treating both STOPPING and STOPPED as "stop" closes a
+  // race in concurrent stop_connection_heartbeat() calls: a second
+  // stopper can advance state from STOPPING → STOPPED before the
+  // first stopper's join sees the thread exit. With STOPPING-only,
+  // the thread observes STOPPED, doesn't recognize it as a stop, and
+  // loops forever.
+  return state_ != HeartbeatState::RUNNING;
 }
 
-//=============================================================================
 bool HeartbeatListener::is_timeout()
 {
   std::chrono::system_clock::time_point current_time = get_current_time();
@@ -171,9 +175,16 @@ bool HeartbeatListener::is_timeout()
   return false;
 }
 
-//=============================================================================
 void HeartbeatListener::listen()
 {
+  // Track whether we've fired the timeout callback for the current
+  // "timeout episode". Reset when a heartbeat is received and
+  // is_timeout() returns false again. The thread keeps spinning until
+  // an explicit stop_connection_heartbeat() arrives — exiting on
+  // first timeout would wedge the listener (state stuck at RUNNING
+  // with a finished thread, refusing future starts).
+  bool timeout_fired = false;
+
   while (!is_stop_requested())
   {
     std::unique_lock<std::mutex> lock(check_lock_);
@@ -189,12 +200,19 @@ void HeartbeatListener::listen()
 
     if (is_timeout())
     {
-      disconnection_callback_();
-      VDA5050_INFO("[" + id_ + "] Heartbeat monitoring stopped after timeout");
-      return;
+      if (!timeout_fired)
+      {
+        VDA5050_INFO("[" + id_ + "] Heartbeat timeout fired");
+        disconnection_callback_();
+        timeout_fired = true;
+      }
+    }
+    else
+    {
+      // Recovered — fire callback again on next timeout episode.
+      timeout_fired = false;
     }
   }
 }
 
-}  // namespace master
-}  // namespace vda5050_core
+}  // namespace vda5050_core::master
