@@ -1,0 +1,34 @@
+# OffboardAGV — deregister an AGV from the master. Wraps
+# VDA5050Master::offboard_agv. Service half of Task #54.
+#
+# **What offboarding does master-side**:
+#   - Removes the AGV from the master's onboard list.
+#   - Calls AGV::stop() which (per agv.cpp): unsubscribes from MQTT
+#     topics, clears state mutexes, drops outbound queues.
+#   - Subsequent service calls referencing this AGV (assign_order,
+#     get_device_status, get_order_status, etc.) return
+#     AGV_NOT_ONBOARDED.
+#
+# **Idempotency**: offboarding a non-onboarded AGV returns
+# NOT_ONBOARDED. FMS clients can call this safely without first
+# checking onboarded state.
+
+string manufacturer
+string serial_number
+---
+# Status enum.
+#
+# SUCCESS         — AGV successfully offboarded; MQTT subscriptions
+#                   torn down; AGV instance destroyed.
+# NOT_ONBOARDED   — no AGV with this {manufacturer, serial_number}
+#                   was found in the master's onboard list.
+#                   Idempotent no-op; treat as success.
+# INVALID_REQUEST — empty manufacturer or serial_number.
+uint8 SUCCESS=0
+uint8 NOT_ONBOARDED=1
+uint8 INVALID_REQUEST=2
+uint8 status
+
+# Echo of request — async-fanout correlation.
+string manufacturer
+string serial_number

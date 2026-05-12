@@ -1,0 +1,51 @@
+# GetDeviceStatus — query the master's cached State, Connection, and
+# Factsheet snapshot for one AGV. Service half of Task #48 / VM-AMQP-3.
+#
+# The master maintains a per-AGV cache of the latest State, Connection,
+# and Factsheet messages received over MQTT. This service returns that
+# cached snapshot synchronously, atomically (single mutex acquisition),
+# without forcing a fresh fetch from the AGV. For a forced refresh, send
+# a stateRequest or factsheetRequest instant action.
+
+string manufacturer
+string serial_number
+---
+# Status enum.
+#
+# SUCCESS: at least one of state/connection has been observed; payloads
+#   carry the latest cached values, gated by the has_* flags below.
+# INVALID_REQUEST: manufacturer or serial_number is empty in the request.
+# AGV_NOT_ONBOARDED: no AGV with that {manufacturer, serial_number} is in
+#   the master's onboarded list.
+# AGV_SILENT: the AGV is onboarded but the master has never received a
+#   State or Connection message from it.
+uint8 SUCCESS=0
+uint8 INVALID_REQUEST=1
+uint8 AGV_NOT_ONBOARDED=2
+uint8 AGV_SILENT=3
+uint8 status
+
+# Echo of the request {manufacturer, serial_number}. FMS clients that
+# fan out N async calls correlate replies by these fields.
+string manufacturer
+string serial_number
+
+# Optional payloads. ROS .srv has no native optional, so each payload
+# is gated by a bool flag. has_factsheet=false alone is normal — the
+# Factsheet is request/response, not heartbeat — and does NOT block
+# SUCCESS.
+bool has_state
+vda5050_interfaces/State state
+
+bool has_connection
+vda5050_interfaces/Connection connection
+
+bool has_factsheet
+vda5050_interfaces/Factsheet factsheet
+
+# Master-side cache freshness. Each is the wall-clock time at which the
+# master most recently received the corresponding payload from the AGV.
+# Zero (epoch) when the corresponding has_* flag is false.
+builtin_interfaces/Time state_received_at
+builtin_interfaces/Time connection_received_at
+builtin_interfaces/Time factsheet_received_at
