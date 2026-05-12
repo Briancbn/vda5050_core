@@ -124,6 +124,12 @@ public:
   void set_will(
     const std::string& topic, const std::string& message, int qos) override;
 
+  // Documentation inherited from MqttClientInterface
+  void set_connection_lost_callback(ConnectionStateHandler handler) override;
+
+  // Documentation inherited from MqttClientInterface
+  void set_connected_callback(ConnectionStateHandler handler) override;
+
   /// \brief Get a mutable reference to Paho configuration options
   ///
   /// \return Mutable reference to Paho configuration options
@@ -153,6 +159,14 @@ private:
 
   /// \brief Mutex protecting list of message handlers
   std::mutex handler_mutex_;
+
+  /// \brief Optional handler invoked when broker connection is lost
+  /// (Task #70). Stored under handler_mutex_.
+  ConnectionStateHandler connection_lost_handler_;
+
+  /// \brief Optional handler invoked when broker connection is
+  /// (re)established (Task #70). Stored under handler_mutex_.
+  ConnectionStateHandler connected_handler_;
 
   /// \brief MQTT connection options
   mqtt::connect_options conn_options_;
