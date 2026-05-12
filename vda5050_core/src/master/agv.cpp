@@ -1017,18 +1017,23 @@ void AGV::stop_queue_processor()
   {
     std::lock_guard<std::mutex> lock(thread_mutex_);
 
-    if (!queue_processor_running_)
-    {
-      return;  // Not running
-    }
-
-    VDA5050_INFO("[AGV] Stopping queue processor for {}", agv_id_);
-
+    // Always signal stop + steal the thread handle, even when
+    // queue_processor_running_ is false. Without this, a destructor
+    // racing against a freshly-started queue thread (e.g. start fired
+    // from handle_connection on the test thread, dtor entered before
+    // the queue thread first observed stop_processing_) could leave
+    // queue_thread_ joinable when member destructors run -> std::thread
+    // dtor calls std::terminate.
     {
       std::lock_guard<std::mutex> queue_lock(queue_mutex_);
       stop_processing_ = true;
     }
-    queue_cv_.notify_one();
+    queue_cv_.notify_all();
+
+    if (queue_processor_running_ || queue_thread_.joinable())
+    {
+      VDA5050_INFO("[AGV] Stopping queue processor for {}", agv_id_);
+    }
 
     thread_to_join = std::move(queue_thread_);
     queue_processor_running_ = false;
@@ -1037,9 +1042,8 @@ void AGV::stop_queue_processor()
   if (thread_to_join.joinable())
   {
     thread_to_join.join();
+    VDA5050_INFO("[AGV] Queue processor stopped for {}", agv_id_);
   }
-
-  VDA5050_INFO("[AGV] Queue processor stopped for {}", agv_id_);
 }
 
 void AGV::process_queues()
