@@ -1192,6 +1192,14 @@ void AGV::publish_order(const vda5050_core::types::Order& order)
     VDA5050_ERROR(
       "[AGV] Order validation failed for {}: {} error(s)", agv_id_,
       result.errors.size());
+    for (const auto& err : result.errors)
+    {
+      VDA5050_ERROR(
+        "[AGV]   - type={} level={} desc={}", err.error_type,
+        err.error_level == vda5050_core::types::ErrorLevel::FATAL ? "FATAL"
+                                                                  : "WARNING",
+        err.error_description.value_or(""));
+    }
     return;
   }
 
