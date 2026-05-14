@@ -291,7 +291,7 @@ struct PendingStep
 //
 // Locking discipline:
 //   - state_mtx_ protects: state_, active_order_, pending_steps_,
-//     active_step_actions_, pending_iactions_, state_request_pending_.
+//     active_step_actions_, pending_iactions_, factsheet_request_pending_.
 //   - NEVER call adapter_->publish(...) while holding state_mtx_:
 //     ProtocolAdapter takes its own internal mutex on
 //     publish/subscribe; mixed lock order is a deadlock risk.
@@ -332,7 +332,11 @@ private:
   std::deque<PendingStep> pending_steps_;
   std::unordered_map<std::string, int> active_step_actions_;  // id -> ticks
   std::deque<Action> pending_iactions_;
-  bool state_request_pending_ = false;
+  // Set by drain_instant_actions_locked when a factsheetRequest action
+  // is acknowledged; consumed once per tick by tick_loop, which then
+  // calls publish_factsheet_minimal() outside the lock. Avoids the
+  // earlier scan-action_states-for-FINISHED-factsheetRequest path.
+  bool factsheet_request_pending_ = false;
 
   // Header helper — common to all outbound publishes.
   Header make_header(uint32_t id);
@@ -706,30 +710,20 @@ void MockClient::drain_instant_actions_locked()
 
     if (a.action_type == "stateRequest")
     {
-      state_request_pending_ = true;
+      // Mock publishes State on every tick anyway, so the next tick's
+      // State publish satisfies the request. Just ack FINISHED.
       set_status(ActionStatus::FINISHED);
       VDA5050_INFO("[mock_client] action {} (stateRequest) acked", a.action_id);
     }
     else if (a.action_type == "factsheetRequest")
     {
-      // publish_factsheet_minimal will happen outside the lock — set a
-      // flag and let tick_loop drain it.
-      // (Re-using state_request_pending_ as a marker would conflate the
-      // two; instead publish immediately AFTER drop_lock + before state
-      // publish. We do that in tick_loop().)
-      // For simplicity, mark FINISHED here; the actual republish runs
-      // unconditionally on every factsheetRequest at tick boundary.
+      // Defer the actual Factsheet publish to tick_loop, which runs
+      // outside this lock (publish_factsheet_minimal would re-enter
+      // ProtocolAdapter's mutex).
+      factsheet_request_pending_ = true;
       set_status(ActionStatus::FINISHED);
       VDA5050_INFO(
         "[mock_client] action {} (factsheetRequest) acked", a.action_id);
-      // Stash the action_id so tick_loop knows to republish.
-      pending_iactions_.push_front(a);  // re-queue marker for tick
-      // ...actually re-queueing causes a loop. Use a dedicated flag.
-      pending_iactions_.pop_front();
-      // Use the action's existence in the just-FINISHED list as the
-      // signal — tick_loop will scan for it. Simpler: a counter.
-      // (Implemented via the bool below.)
-      // Defer to tick_loop scanning; flag handled there.
     }
     else if (a.action_type == "cancelOrder")
     {
@@ -903,25 +897,10 @@ void MockClient::tick_loop()
     {
       std::lock_guard<std::mutex> lock(state_mtx_);
       drain_instant_actions_locked();
-
-      // factsheetRequest was draining marker: any FINISHED action with
-      // type=factsheetRequest in this tick means re-publish.
-      for (const auto& s : state_.action_states)
-      {
-        if (
-          s.action_type.value_or("") == "factsheetRequest" &&
-          s.action_status == ActionStatus::FINISHED)
-        {
-          republish_factsheet = true;
-          break;
-        }
-      }
-
+      republish_factsheet = factsheet_request_pending_;
+      factsheet_request_pending_ = false;
       advance_step_locked();
       snapshot = state_;  // copy under the lock
-      // Reset state_request_pending_ — we publish once on the next
-      // statement, out of cycle this tick.
-      state_request_pending_ = false;
     }
 
     // Heartbeat the Connection ONLINE on every tick. VDA5050 §6.14
@@ -935,17 +914,6 @@ void MockClient::tick_loop()
     if (republish_factsheet)
     {
       publish_factsheet_minimal();
-      // Clear the FINISHED factsheetRequest entries so we don't
-      // re-republish next tick.
-      std::lock_guard<std::mutex> lock(state_mtx_);
-      state_.action_states.erase(
-        std::remove_if(
-          state_.action_states.begin(), state_.action_states.end(),
-          [](const ActionState& s) {
-            return s.action_type.value_or("") == "factsheetRequest" &&
-                   s.action_status == ActionStatus::FINISHED;
-          }),
-        state_.action_states.end());
     }
 
     publish_state_snapshot(snapshot);
