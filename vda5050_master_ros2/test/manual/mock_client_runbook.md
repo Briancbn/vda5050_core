@@ -1,20 +1,18 @@
-# L1 Manual Integration Runbook — `example_master` + `mock_client`
+# Manual Integration Runbook — `example_master` + `mock_client`
 
 Step-by-step scenarios for exercising the V0 `vda5050_master_ros2`
 master process against the standalone `mock_client` AGV stub over a
 local MQTT broker.
 
-> **Scope.** This is the L1 tier of the three-level V0 test pyramid:
+> **Scope.** This runbook covers manual fault-injection testing with
+> the in-tree `mock_client` AGV stub (deterministic, no external
+> dependencies). Companion to:
 >
-> - **L1** = master + `mock_client` (this runbook). Single-AGV stubs we
->   control. Deterministic fault injection. No external dependencies.
-> - **L2** = master + Saurabh's `example_client` + scripted `mock_fms`
->   (future task). Real VDA5050 protocol partner; cross-package interop.
-> - **L3** = real FMS + master + UE5 sim / hardware (deferred; infra not
->   available).
+> - `interop_runbook.md` — master + `example_client` (independent
+>   VDA5050 implementation) driven by `mock_fms` (FMS-side console).
+> - Unit suite — gtest, run via `colcon test`.
 >
-> L0 (gtest unit suite, 60/60 green) covers single-class invariants; L1
-> covers cross-process behaviour over real MQTT.
+> Real FMS / sim / hardware integration is out of scope here.
 
 ---
 
@@ -121,7 +119,7 @@ in its onboarded-fleet map.
 
 ```md
 ### S<N> — <name>
-- V0 task: #<id>
+- Use case: <description>
 - Spec ref: VDA5050 v2.0.0 §<x.y>
 
 Setup
@@ -181,7 +179,6 @@ surface the intended `schemaValidationError` and
 
 ### S1 — Master-broker status survives a broker bounce
 
-- V0 task: #27 / #70 (`GetMasterBrokerStatus.srv`)
 - Spec ref: §6.14
 
 **Setup**
@@ -211,7 +208,6 @@ surface the intended `schemaValidationError` and
 
 ### S2 — Onboard idempotency
 
-- V0 task: #53 (`OnboardAGV.srv`)
 
 **Setup** Same as S1, plus T3 mock_client running.
 
@@ -229,7 +225,6 @@ surface the intended `schemaValidationError` and
 
 ### S3 — `GetLoadedMap` returns map and per-AGV alignment
 
-- V0 task: #39 (map loader)
 
 **Setup** Same as S2.
 
@@ -254,7 +249,6 @@ surface the intended `schemaValidationError` and
 
 ### S4 — Happy-path order lifecycle: assign → publish → state cycles
 
-- V0 task: #45 / #13 / #47
 - Spec ref: §6.6.1
 
 **Setup**
@@ -280,7 +274,7 @@ The master's async OrderPublisher chain currently reports `Order
 validation failed for MockMfg/MOCK001: 1 error(s)` after the sync
 pre-flight returns ASSIGNED. The error is not surfaced to the
 operator — fixing the master to log the specific error (or returning
-it via AssignmentEvents per #57) is a follow-up. Until then, S4 fails
+via the planned AssignmentEvents topic) is a follow-up. Until then, S4 fails
 on the publish→state cycle step but ASSIGNED is returned, confirming
 the request side is wired correctly.
 
@@ -289,7 +283,6 @@ the request side is wired correctly.
 
 ### S5 — Horizon extension at stitch point
 
-- V0 task: #14 (stitcher)
 - Spec ref: §6.6.2 (figure 8)
 
 **Setup** Same as S4. Order from S4 still active.
@@ -310,7 +303,6 @@ reverse the base's waypoint list and append, mirroring
 
 ### S6 — Schema reject: bad header.version
 
-- V0 task: #23
 
 **Setup** Same as S2.
 
@@ -324,8 +316,7 @@ reverse the base's waypoint list and append, mirroring
 
 ### S7 — Traversability reject: first node unreachable
 
-- V0 task: #12
-- Spec ref: §6.6.1.3 #4
+- Spec ref: §6.6.1.3
 
 **Setup**
 - T3: `mock_client --x0 0 --y0 0` (default pose at N0=origin)
@@ -341,7 +332,6 @@ reverse the base's waypoint list and append, mirroring
 
 ### S8 — Pre-send reject: mock in MANUAL → `AGV_MODE_NOT_AUTO`
 
-- V0 task: #16
 - Spec ref: Table 10
 
 **Setup** Same as S2.
@@ -359,7 +349,6 @@ reverse the base's waypoint list and append, mirroring
 
 ### S9 — `stateRequest` instant action → mock publishes fresh State
 
-- V0 task: #38 / #61
 - Spec ref: §6.8.2.6
 
 **Setup** Same as S2.
@@ -384,7 +373,6 @@ reverse the base's waypoint list and append, mirroring
 
 ### S10 — Broken connection: `kill -9` mock → master fires `on_connection_broken`
 
-- V0 task: #10 (last-will)
 - Spec ref: §6.14
 
 **Setup** Same as S2, with mock running.
@@ -403,64 +391,64 @@ reverse the base's waypoint list and append, mirroring
 ## Tier-2 — documented, walk only if changes touch the related component (15 scenarios)
 
 ### S11 — Graph reject: disconnected nodes
-Task #11. Build an order with N0 and N1 but no E01 edge → graph validator rejects.
+Build an order with N0 and N1 but no E01 edge → graph validator rejects.
 
 ### S12 — Released-edge endpoint check
-Task #11. Released E01 but N1 not released → rejected.
+Released E01 but N1 not released → rejected.
 
 ### S13 — Traversability reject: action capability missing
-Task #12. Order contains `action_type: "customDock"` but mock's
+Order contains `action_type: "customDock"` but mock's
 factsheet lists no `customDock` in agv_actions → rejected.
 
 ### S14 — Pre-send reject: position not initialized
-Task #16. Launch mock with `--scenario uninit-pose`; assign order →
+Launch mock with `--scenario uninit-pose`; assign order →
 `AGV_POSITION_NOT_INITIALIZED`.
 
 ### S15 — Stitch guard: `order_update_id <= active`
-Task #14. With order `demo-order-001` order_update_id=1 active, send
+With order `demo-order-001` order_update_id=1 active, send
 update with order_update_id=0 → `STITCH_REJECTED`.
 
 ### S16 — Stitch guard: AGV past stitch node
-Task #14. Wait until mock progresses past stitch node, then send an
+Wait until mock progresses past stitch node, then send an
 order update whose first base node is the now-passed node → rejected.
 
 ### S17 — Stitch guard: order_id mismatch (3-strike)
-Task #13. Send 3 consecutive order_update messages for an order_id
+Send 3 consecutive order_update messages for an order_id
 that mock is NOT executing → after 3 strikes master clears stale
 tracking. Inspect log for `mismatch counter`.
 
 ### S18 — Action conflict: HARD blocks running pickup
-Task #22. Active order with `pickup` action RUNNING; send instant
+Active order with `pickup` action RUNNING; send instant
 action `dropoff` with `blocking_type=HARD` → rejected.
 
 ### S19 — Custom action routed through
-Task #20. Send `customBeep` instant action → mock acks FINISHED.
+Send `customBeep` instant action → mock acks FINISHED.
 
 ### S20 — Mode flip AUTOMATIC→MANUAL captures queue
-Task #24. Send 2 orders to mock. Before second completes, flip mode
+Send 2 orders to mock. Before second completes, flip mode
 to MANUAL via SIGUSR1. Master captures pending queue into
 mode_cancelled_buffer. Verify via:
 `ros2 service call /vda5050_master/get_device_status ...`.
 
 ### S21 — Mode return MANUAL→AUTOMATIC: resume queue
-Task #24. After S20, flip back to AUTOMATIC (SIGUSR1). ExampleMaster's
+After S20, flip back to AUTOMATIC (SIGUSR1). ExampleMaster's
 `on_mode_changed` override auto-calls `resume_mode_cancelled_queue()`.
 
 ### S22 — Mode-blocked instant action
-Task #16 / #20. With mock in MANUAL, send a `customBeep` instant
+With mock in MANUAL, send a `customBeep` instant
 action → master rejects pre-send.
 
 ### S23 — State timeout: stop publishing → `[TIMEOUT]`
-Task #28. SIGSTOP mock (`kill -STOP $(pgrep -f mock_client)`). Wait
+SIGSTOP mock (`kill -STOP $(pgrep -f mock_client)`). Wait
 30+ s. Master logs `[WARN] [TIMEOUT] MockMfg/MOCK001 state heartbeat
 lost`.
 
 ### S24 — State resumed → `[RECOVERED]`
-Task #28. SIGCONT the mock from S23. Within 1 tick, master logs
+SIGCONT the mock from S23. Within 1 tick, master logs
 `[INFO] [RECOVERED] MockMfg/MOCK001 state heartbeat resumed`.
 
 ### S25 — Malformed state → schema reject
-Task #23. Launch mock with `--scenario malformed-state`. T2 logs
+Launch mock with `--scenario malformed-state`. T2 logs
 `[WARN] [AGV] Dropping malformed state from MockMfg/MOCK001: 1 schema
 error(s)` once at startup, then normal `[STATE]` thereafter.
 
@@ -533,12 +521,12 @@ the stitch point.
    `VDA5050_ERROR(..., result.errors[0].error_description.value_or(\"\"))`
    in `vda5050_core/src/master/agv.cpp`'s `publish_order` rejection
    site, rebuild, re-run. Follow-up: surface validator errors through
-   the `AssignmentEvents` topic planned for #57.
+   the planned `AssignmentEvents` topic.
 
 ## Next milestones
 
-- **L2 runbook** (`mock_fms.py` + Saurabh's `example_client`) lands as a
-  separate task post-L1 merge.
-- **L3 runbook** (real FMS + UE5 sim / hardware) deferred to V0+1.
-- **Automated `launch_test` wrapper** for L1 — defer until CI hosts a
-  broker reliably.
+- **`interop_runbook.md`** (`mock_fms` + Saurabh's `example_client`)
+  covers cross-implementation interop testing.
+- **Real FMS / sim / hardware integration** — deferred post-V0.
+- **Automated `launch_test` wrapper** — defer until CI hosts a broker
+  reliably.

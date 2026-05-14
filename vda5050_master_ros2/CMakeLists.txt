@@ -82,7 +82,44 @@ target_link_libraries(example_master
   ament_index_cpp::ament_index_cpp
 )
 
-# --- mock_client executable (L1 manual testing; Task 1.5) --------------------
+# --- example_client executable (interop testing) ----------------------------
+# AGV-side reference. SECTION 1 is a verbatim port of Saurabh's example_client
+# from his throwaway/test-client branch (mechanical changes for the current
+# single-package layout). SECTION 2 adds a MinimalStatePublisher — test-only,
+# not for production — so the master's pre_send_validator can accept orders.
+# Run with:
+#   ros2 run vda5050_master_ros2 example_client
+add_executable(example_client examples/example_client.cpp)
+target_link_libraries(example_client
+  vda5050_core::execution
+  vda5050_core::transport
+  vda5050_core::types
+  vda5050_core::json_utils
+  vda5050_core::logger
+  fmt::fmt
+)
+set_target_properties(example_client PROPERTIES
+  BUILD_RPATH_USE_ORIGIN TRUE
+  INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+# --- mock_fms executable (FMS-side console for interop testing) -------------
+# Drives the master's 10 ROS 2 service endpoints + subscribes to per-AGV
+# state/connection/order_status topics. Three modes: scripted scenarios,
+# interactive REPL, and live monitor. See examples/mock_fms.cpp header for
+# usage. Run with:
+#   ros2 run vda5050_master_ros2 mock_fms --interactive
+add_executable(mock_fms examples/mock_fms.cpp)
+target_link_libraries(mock_fms
+  ${cpp_typesupport_target}
+  rclcpp::rclcpp
+  ${vda5050_interfaces_TARGETS}
+  fmt::fmt
+)
+set_target_properties(mock_fms PROPERTIES
+  BUILD_RPATH_USE_ORIGIN TRUE
+  INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+# --- mock_client executable (standalone AGV stub for manual testing) --------
 # Standalone pure-VDA5050-over-MQTT AGV stub. Deliberately does NOT link
 # ${PROJECT_NAME}_lib (no rclcpp dependency) or vda5050_core::master (mock is
 # the AGV side, not master). Run with:
@@ -103,7 +140,7 @@ set_target_properties(mock_client PROPERTIES
 # --- install -----------------------------------------------------------------
 install(DIRECTORY include/${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(DIRECTORY sample_data/ DESTINATION share/${PROJECT_NAME}/sample_data)
-install(TARGETS ${PROJECT_NAME}_lib example_master mock_client
+install(TARGETS ${PROJECT_NAME}_lib example_master mock_client example_client mock_fms
   EXPORT export_${PROJECT_NAME}
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib

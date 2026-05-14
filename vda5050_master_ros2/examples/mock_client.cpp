@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-// mock_client — single-AGV pure-VDA5050 stub for L1 manual integration tests
+// mock_client — single-AGV pure-VDA5050 stub for manual integration tests
 // against example_master. Talks MQTT only — no rclcpp, no ROS 2 surface.
 //
 // Pattern mirrors Saurabh's `mock_master_control.cpp`, role-inverted: this is
@@ -603,7 +603,7 @@ void MockClient::apply_order_locked(const Order& order)
   // Rebuild pending_steps_ in sequence_id order, interleaving nodes
   // and edges. Skip the first node IF the AGV is already on it
   // (sequence_id 0 + last_node_id matches) on a fresh order — but for
-  // L1 we keep it simple: walk every step.
+  // the simple mock we walk every step.
   //
   // Horizon (released=false) nodes/edges still appear in
   // state_.node_states/edge_states for master visibility, but are NOT
@@ -713,10 +713,11 @@ void MockClient::drain_instant_actions_locked()
       if (desc) as_it->result_description = desc;
     };
 
-    // Mode-gate: master's #16/#20 reject mode-not-AUTOMATIC actions
-    // upstream — but if a request slips through (or a test bypasses
-    // the master), the AGV must FAIL the action with a clear reason.
-    // stateRequest / factsheetRequest are exempt (operational).
+    // Mode-gate: the master's pre-send validators reject
+    // mode-not-AUTOMATIC actions upstream — but if a request slips
+    // through (or a test bypasses the master), the AGV must FAIL the
+    // action with a clear reason. stateRequest / factsheetRequest are
+    // exempt (operational).
     const bool exempt =
       (a.action_type == "stateRequest" || a.action_type == "factsheetRequest");
     if (!exempt && state_.operating_mode != OperatingMode::AUTOMATIC)
@@ -874,7 +875,7 @@ void MockClient::advance_step_locked()
     // Edge step: 1 tick traversal. driving=true while traversing; pose
     // doesn't change here (the next node step will set it). Pop the
     // EdgeState immediately on the tick we "start" the edge — works
-    // for the L1 mock where one tick = one edge.
+    // for this simple mock where one tick = one edge.
     state_.driving = true;
     if (!state_.edge_states.empty())
       state_.edge_states.erase(state_.edge_states.begin());

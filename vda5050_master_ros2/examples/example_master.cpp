@@ -233,7 +233,7 @@ public:
     }
   }
 
-  // --- State-timeout (#28) -----------------------------------------------
+  // --- State-timeout -----------------------------------------------------
 
   void on_state_timeout(const std::string& agv_id) override
   {
@@ -248,7 +248,7 @@ public:
     VDA5050_INFO("[RECOVERED] {} state heartbeat resumed", agv_id);
   }
 
-  // --- Connection lifecycle (#10) ----------------------------------------
+  // --- Connection lifecycle ----------------------------------------------
 
   void on_connect(const std::string& agv_id) override
   {
@@ -269,7 +269,7 @@ public:
       "[BROKEN] {} unexpectedly disconnected (last-will fired)", agv_id);
   }
 
-  // --- Master-broker observability (#27 / #70) ---------------------------
+  // --- Master-broker observability ---------------------------------------
 
   void on_broker_disconnected() override
   {
