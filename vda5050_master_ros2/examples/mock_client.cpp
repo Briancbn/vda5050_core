@@ -604,6 +604,17 @@ void MockClient::apply_order_locked(const Order& order)
   // and edges. Skip the first node IF the AGV is already on it
   // (sequence_id 0 + last_node_id matches) on a fresh order — but for
   // L1 we keep it simple: walk every step.
+  //
+  // Horizon (released=false) nodes/edges still appear in
+  // state_.node_states/edge_states for master visibility, but are NOT
+  // pushed to pending_steps_ — the AGV must park at the last released
+  // node and wait for an order update that releases the next segment
+  // (VDA5050 v2.0.0 §6.6.4). When an update arrives with same order_id
+  // and higher order_update_id, this function rebuilds pending_steps_
+  // from the (now-released) items whose sequence_id is past the AGV's
+  // current last_node_sequence_id, so previously-walked steps aren't
+  // re-walked.
+  const uint32_t walked_through = is_update ? state_.last_node_sequence_id : 0;
   pending_steps_.clear();
   active_step_actions_.clear();
   state_.node_states.clear();
@@ -629,12 +640,14 @@ void MockClient::apply_order_locked(const Order& order)
     PendingStep ps;
     ps.is_node = it.is_node;
     ps.sequence_id = it.seq;
+    bool released = false;
     if (it.is_node)
     {
       const auto& n = *static_cast<const vda5050_core::types::Node*>(it.ptr);
       ps.id = n.node_id;
       ps.end_pose = n.node_position;
       ps.actions = n.actions;
+      released = n.released;
       NodeState ns;
       ns.node_id = n.node_id;
       ns.sequence_id = n.sequence_id;
@@ -647,13 +660,20 @@ void MockClient::apply_order_locked(const Order& order)
       const auto& e = *static_cast<const vda5050_core::types::Edge*>(it.ptr);
       ps.id = e.edge_id;
       ps.actions = e.actions;
+      released = e.released;
       EdgeState es;
       es.edge_id = e.edge_id;
       es.sequence_id = e.sequence_id;
       es.released = e.released;
       state_.edge_states.push_back(es);
     }
-    pending_steps_.push_back(std::move(ps));
+    // Only released items past the AGV's current position are walkable.
+    // Horizon items stay in state_.node_states/edge_states for the
+    // master to see, but the mock won't drive them.
+    if (released && it.seq > walked_through)
+    {
+      pending_steps_.push_back(std::move(ps));
+    }
   }
 
   // Initialize ActionState entries for any node/edge actions.

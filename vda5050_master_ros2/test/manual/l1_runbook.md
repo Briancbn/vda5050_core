@@ -155,7 +155,7 @@ Cleanup
 | S2 | Onboard idempotent | ✅ verified | SUCCESS → ALREADY_ONBOARDED |
 | S3 | GetLoadedMap | ✅ verified | sample_map (4 nodes / 4 edges) + factsheet alignment |
 | S4 | Happy-path order | ✅ verified | `decision=0` → mock walks N0→N1, `OrderLifecycle completed` logged |
-| S5 | Horizon extension stitch | ⏳ not walked | requires careful timing — left to next walkthrough |
+| S5 | Horizon extension stitch | ✅ verified | base order with N0/N1 released + N2 horizon → mock parks at N1; update with same order_id update_id=1 releasing N2 + adding N3 → mock walks to N3. Required the mock fix in `fix(master_ros2): mock_client should not walk unreleased horizon nodes` |
 | S6 | Schema reject bad version | ✅ verified | after the stitcher fix in `fix(master): stitcher should not reject new order_id after prior order complete`, surfaces `schemaValidationError: header.version '99.0' is not in SupportedSchemaVersions` |
 | S7 | Traversability reject unreachable | ✅ verified | surfaces `traversabilityValidationError: AGV is not within the first node's allowed_deviation_x_y (distance=67.27 m, allowed=0.00 m)` plus map-deviation error |
 | S8 | Pre-send reject MANUAL mode | ✅ verified | `decision=4` (AGV_MODE_NOT_AUTO), `preSendValidationError` |
