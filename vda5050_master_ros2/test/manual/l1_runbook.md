@@ -156,22 +156,28 @@ Cleanup
 | S3 | GetLoadedMap | ✅ verified | sample_map (4 nodes / 4 edges) + factsheet alignment |
 | S4 | Happy-path order | ✅ verified | `decision=0` → mock walks N0→N1, `OrderLifecycle completed` logged |
 | S5 | Horizon extension stitch | ⏳ not walked | requires careful timing — left to next walkthrough |
-| S6 | Schema reject bad version | ⚠️ see precedence note | order with `header.version='99.0'` after S4 is **stitch-rejected first** because state still carries `demo-order-A`. Send as **first** order after onboard to actually exercise schema validator. |
-| S7 | Traversability reject unreachable | ⚠️ see precedence note | same precedence issue as S6. Send as first order. |
+| S6 | Schema reject bad version | ✅ verified | after the stitcher fix in `fix(master): stitcher should not reject new order_id after prior order complete`, surfaces `schemaValidationError: header.version '99.0' is not in SupportedSchemaVersions` |
+| S7 | Traversability reject unreachable | ✅ verified | surfaces `traversabilityValidationError: AGV is not within the first node's allowed_deviation_x_y (distance=67.27 m, allowed=0.00 m)` plus map-deviation error |
 | S8 | Pre-send reject MANUAL mode | ✅ verified | `decision=4` (AGV_MODE_NOT_AUTO), `preSendValidationError` |
 | S9 | stateRequest instant action | ✅ verified | mock logged `action ia-stateReq-1 (stateRequest) acked` within 1 tick |
 | S10 | kill -9 → BROKEN | ✅ verified | master logged `[CONN] CONNECTIONBROKEN` + `[BROKEN]` + `[AGV] Last-will fired ... Clearing pending queues` within 1 s of kill |
 
-**Validator precedence discovered during walkthrough**: in the async
-OrderPublisher chain (after `decision=0` returns from sync pre-flight),
-the **stitcher runs before schema/traversability**. Per VDA5050 §6.6.1,
-the AGV keeps `state.order_id` until a new order is accepted. So after
-order `A` completes, the AGV's State still reports `order_id=A`; any
-new order `B` looks to the stitcher like a "different order_id while
-A is still active" and gets stitch-rejected — masking schema or
-traversability errors that `B` may also have. To exercise S6/S7
-cleanly, send the malformed order as the FIRST order after onboard
-(when `state.order_id` is still empty).
+**Stitcher false-rejection — found and fixed during this walkthrough.**
+The earlier round saw that after order `A` completed, any new order
+`B` with a different order_id was stitch-rejected (`"cancel the
+active order before sending a different order"`) — masking S6/S7's
+intended validator errors. Per VDA5050 §6.6.1 the AGV legitimately
+keeps `state.order_id = A` until a new order is accepted; the
+master's lifecycle correspondingly keeps `has_active=true` with
+`order_complete=true`. The stitcher previously rejected on
+`has_active` alone, ignoring `order_complete`.
+
+Fixed in `fix(master): stitcher should not reject new order_id after
+prior order complete`: when `snapshot.order_complete == true`, a
+candidate with a different `order_id` is treated as a fresh
+assignment (`SEND_NOW`). Verified by re-running S6 and S7 — they now
+surface the intended `schemaValidationError` and
+`traversabilityValidationError` respectively.
 
 ### S1 — Master-broker status survives a broker bounce
 
