@@ -147,6 +147,32 @@ Cleanup
 
 ## Tier-1 — must walk before V0 sign-off (10 scenarios)
 
+### Last-walked status — 2026-05-14
+
+| # | Scenario | Status | Notes |
+|---|---|---|---|
+| S1 | Master-broker bounce | ✅ verified | reconnect_count went 1 → 2 across bounce |
+| S2 | Onboard idempotent | ✅ verified | SUCCESS → ALREADY_ONBOARDED |
+| S3 | GetLoadedMap | ✅ verified | sample_map (4 nodes / 4 edges) + factsheet alignment |
+| S4 | Happy-path order | ✅ verified | `decision=0` → mock walks N0→N1, `OrderLifecycle completed` logged |
+| S5 | Horizon extension stitch | ⏳ not walked | requires careful timing — left to next walkthrough |
+| S6 | Schema reject bad version | ⚠️ see precedence note | order with `header.version='99.0'` after S4 is **stitch-rejected first** because state still carries `demo-order-A`. Send as **first** order after onboard to actually exercise schema validator. |
+| S7 | Traversability reject unreachable | ⚠️ see precedence note | same precedence issue as S6. Send as first order. |
+| S8 | Pre-send reject MANUAL mode | ✅ verified | `decision=4` (AGV_MODE_NOT_AUTO), `preSendValidationError` |
+| S9 | stateRequest instant action | ✅ verified | mock logged `action ia-stateReq-1 (stateRequest) acked` within 1 tick |
+| S10 | kill -9 → BROKEN | ✅ verified | master logged `[CONN] CONNECTIONBROKEN` + `[BROKEN]` + `[AGV] Last-will fired ... Clearing pending queues` within 1 s of kill |
+
+**Validator precedence discovered during walkthrough**: in the async
+OrderPublisher chain (after `decision=0` returns from sync pre-flight),
+the **stitcher runs before schema/traversability**. Per VDA5050 §6.6.1,
+the AGV keeps `state.order_id` until a new order is accepted. So after
+order `A` completes, the AGV's State still reports `order_id=A`; any
+new order `B` looks to the stitcher like a "different order_id while
+A is still active" and gets stitch-rejected — masking schema or
+traversability errors that `B` may also have. To exercise S6/S7
+cleanly, send the malformed order as the FIRST order after onboard
+(when `state.order_id` is still empty).
+
 ### S1 — Master-broker status survives a broker bounce
 
 - V0 task: #27 / #70 (`GetMasterBrokerStatus.srv`)
