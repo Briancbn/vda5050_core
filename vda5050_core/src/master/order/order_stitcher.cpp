@@ -104,11 +104,22 @@ StitchResult OrderStitcher::decide(
     return res;
   }
 
-  // Different order_id while another order is active — concurrent
-  // orders are not supported by VDA5050 v2.0.0; FMS must cancel
-  // the active order first via cancelOrder instantAction.
+  // Different order_id. Two cases:
+  //   1. The prior order is COMPLETE — this is a fresh assignment, not
+  //      a stitch. Per VDA5050 v2.0.0 §6.6.1 the AGV legitimately keeps
+  //      its state.order_id reporting the finished order until a new
+  //      one is accepted, so seeing a new order_id here is normal.
+  //      Fall through (SEND_NOW); the publisher chain treats it as a
+  //      new order regardless of the stale `has_active` tracking flag.
+  //   2. The prior order is still in flight — concurrent orders aren't
+  //      supported in v2.0.0; FMS must cancel via cancelOrder
+  //      instantAction first.
   if (candidate.order_id != snapshot.order_id)
   {
+    if (snapshot.order_complete)
+    {
+      return res;  // SEND_NOW — fresh assignment, bypass stitch guards
+    }
     reject(
       "Candidate order_id does not match active order_id; cancel "
       "the active order before sending a different order");

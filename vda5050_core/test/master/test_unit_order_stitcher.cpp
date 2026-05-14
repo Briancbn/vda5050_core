@@ -109,6 +109,24 @@ TEST(OrderStitcher, DifferentOrderIdWithActive_Rejects)
   EXPECT_TRUE(every_error_is_order_update(res));
 }
 
+// New order with different order_id after the prior order has completed
+// should pass through the stitcher untouched — the lifecycle's stale
+// has_active flag must not block a legitimate fresh assignment.
+// Without this, master-side state confusion (AGV legitimately keeps
+// state.order_id reporting the finished order per §6.6.1) makes every
+// subsequent order_id appear as a stitch conflict.
+TEST(OrderStitcher, DifferentOrderIdAfterComplete_SendsNow)
+{
+  OrderStitcher stitcher;
+  auto snap = make_active_snapshot(
+    /*order_id=*/kOrderId, /*order_update_id=*/0,
+    /*state_order_update_id=*/0, /*last_node_sequence_id=*/2,
+    /*state_order_id=*/std::string(kOrderId), /*order_complete=*/true);
+  auto res = stitcher.decide(make_candidate("OTHER", 0), snap);
+  EXPECT_EQ(res.decision, StitchDecision::SEND_NOW);
+  EXPECT_TRUE(res.errors.empty());
+}
+
 TEST(OrderStitcher, DuplicateUpdateId_Rejects)
 {
   OrderStitcher stitcher;
