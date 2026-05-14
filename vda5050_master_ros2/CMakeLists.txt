@@ -82,10 +82,28 @@ target_link_libraries(example_master
   ament_index_cpp::ament_index_cpp
 )
 
+# --- mock_client executable (L1 manual testing; Task 1.5) --------------------
+# Standalone pure-VDA5050-over-MQTT AGV stub. Deliberately does NOT link
+# ${PROJECT_NAME}_lib (no rclcpp dependency) or vda5050_core::master (mock is
+# the AGV side, not master). Run with:
+#   ros2 run vda5050_master_ros2 mock_client --serial MOCK001 ...
+add_executable(mock_client examples/mock_client.cpp)
+target_link_libraries(mock_client
+  vda5050_core::execution
+  vda5050_core::transport
+  vda5050_core::types
+  vda5050_core::json_utils
+  vda5050_core::logger
+  fmt::fmt
+)
+set_target_properties(mock_client PROPERTIES
+  BUILD_RPATH_USE_ORIGIN TRUE
+  INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 # --- install -----------------------------------------------------------------
 install(DIRECTORY include/${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(DIRECTORY sample_data/ DESTINATION share/${PROJECT_NAME}/sample_data)
-install(TARGETS ${PROJECT_NAME}_lib example_master
+install(TARGETS ${PROJECT_NAME}_lib example_master mock_client
   EXPORT export_${PROJECT_NAME}
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib

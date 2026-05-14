@@ -304,7 +304,7 @@ int main(int argc, char** argv)
     try
     {
       map_path =
-        ament_index_cpp::get_package_share_directory("vda5050_master") +
+        ament_index_cpp::get_package_share_directory("vda5050_master_ros2") +
         "/sample_data/sample_map.json";
     }
     catch (const std::exception& e)
