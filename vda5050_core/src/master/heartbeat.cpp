@@ -188,8 +188,17 @@ void HeartbeatListener::listen()
   while (!is_stop_requested())
   {
     std::unique_lock<std::mutex> lock(check_lock_);
+    // Predicate-form wait_for: returns immediately if a stop was
+    // requested before this thread reached wait_for (closes a lost-
+    // wakeup race where stop_connection_heartbeat's notify_all fires
+    // before the listener entered wait_for, leaving the listener
+    // stuck waiting the full heartbeat_interval). Without the
+    // predicate, teardown of a HeartbeatListener constructed with
+    // interval=N takes up to N seconds under CPU contention, which
+    // can push parallel test binaries past their CTest timeout.
     message_received_.wait_for(
-      lock, std::chrono::seconds(get_check_interval()));
+      lock, std::chrono::seconds(get_check_interval()),
+      [this] { return is_stop_requested(); });
 
     // Check if shutdown was requested while waiting
     if (is_stop_requested())

@@ -111,8 +111,12 @@ PreSendContext make_ctx(
   const vda5050_core::types::Factsheet& fs)
 {
   return PreSendContext{
-    vda5050_core::types::ConnectionState::ONLINE, state, fs,
-    AGVState::AVAILABLE, std::nullopt};
+    vda5050_core::types::ConnectionState::ONLINE,
+    state,
+    fs,
+    AGVState::AVAILABLE,
+    std::nullopt,
+    nullptr};
 }
 
 vda5050_core::types::Order make_minimal_order()
@@ -363,8 +367,12 @@ TEST(TraversabilityValidatorTest, OrderSkipsCapabilityChecksWhenNoFactsheet)
   // No factsheet → skip capability + limit checks. Reachability still runs;
   // AGV is on first node so it passes.
   PreSendContext ctx{
-    vda5050_core::types::ConnectionState::ONLINE, make_state_on_node("N0"),
-    std::nullopt, AGVState::AVAILABLE, std::nullopt};
+    vda5050_core::types::ConnectionState::ONLINE,
+    make_state_on_node("N0"),
+    std::nullopt,
+    AGVState::AVAILABLE,
+    std::nullopt,
+    nullptr};
   auto order = make_minimal_order();
   auto res = validate_traversability(ctx, order);
   EXPECT_TRUE(static_cast<bool>(res));
@@ -376,8 +384,12 @@ TEST(
 {
   // No factsheet → no capability check on InstantActions; passes silently.
   PreSendContext ctx{
-    vda5050_core::types::ConnectionState::ONLINE, make_state_on_node("N0"),
-    std::nullopt, AGVState::AVAILABLE, std::nullopt};
+    vda5050_core::types::ConnectionState::ONLINE,
+    make_state_on_node("N0"),
+    std::nullopt,
+    AGVState::AVAILABLE,
+    std::nullopt,
+    nullptr};
   vda5050_core::types::InstantActions ia;
   vda5050_core::types::Action a;
   a.action_id = "A1";

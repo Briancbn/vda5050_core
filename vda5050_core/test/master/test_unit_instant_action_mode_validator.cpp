@@ -54,8 +54,12 @@ vda5050_core::types::State make_state(vda5050_core::types::OperatingMode mode)
 PreSendContext make_ctx(const vda5050_core::types::State& state)
 {
   return PreSendContext{
-    vda5050_core::types::ConnectionState::ONLINE, state, std::nullopt,
-    AGVState::AVAILABLE, std::nullopt};
+    vda5050_core::types::ConnectionState::ONLINE,
+    state,
+    std::nullopt,
+    AGVState::AVAILABLE,
+    std::nullopt,
+    nullptr};
 }
 
 vda5050_core::types::InstantActions wrap(
@@ -107,8 +111,12 @@ TEST(InstantActionModeValidator, NonExempt_ActionTypes_Rejected)
 TEST(InstantActionModeValidator, NoStateInContext_Passes)
 {
   PreSendContext ctx{
-    vda5050_core::types::ConnectionState::ONLINE, std::nullopt, std::nullopt,
-    AGVState::AVAILABLE, std::nullopt};
+    vda5050_core::types::ConnectionState::ONLINE,
+    std::nullopt,
+    std::nullopt,
+    AGVState::AVAILABLE,
+    std::nullopt,
+    nullptr};
   auto res =
     validate_instant_action_mode(ctx, wrap({make_action("customAction")}));
   EXPECT_TRUE(static_cast<bool>(res));

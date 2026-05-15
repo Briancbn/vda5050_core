@@ -68,8 +68,12 @@ vda5050_core::types::State make_state(
 PreSendContext make_ctx(const vda5050_core::types::State& state)
 {
   return PreSendContext{
-    vda5050_core::types::ConnectionState::ONLINE, state, std::nullopt,
-    AGVState::AVAILABLE, std::nullopt};
+    vda5050_core::types::ConnectionState::ONLINE,
+    state,
+    std::nullopt,
+    AGVState::AVAILABLE,
+    std::nullopt,
+    nullptr};
 }
 
 vda5050_core::types::InstantActions wrap(
@@ -89,8 +93,12 @@ vda5050_core::types::InstantActions wrap(
 TEST(ActionConflictValidator, EmptyActionsList_Passes)
 {
   PreSendContext ctx{
-    vda5050_core::types::ConnectionState::ONLINE, make_state(true),
-    std::nullopt, AGVState::AVAILABLE, std::nullopt};
+    vda5050_core::types::ConnectionState::ONLINE,
+    make_state(true),
+    std::nullopt,
+    AGVState::AVAILABLE,
+    std::nullopt,
+    nullptr};
   auto res = validate_action_conflict(ctx, wrap({}));
   EXPECT_TRUE(static_cast<bool>(res));
   EXPECT_TRUE(res.errors.empty());
@@ -101,8 +109,12 @@ TEST(ActionConflictValidator, NoStateInContext_Passes)
   // Degraded mode: AGV never reported state. No info on driving or
   // action_states[]; conservative = pass through (matches PreSend pattern).
   PreSendContext ctx{
-    vda5050_core::types::ConnectionState::ONLINE, std::nullopt, std::nullopt,
-    AGVState::AVAILABLE, std::nullopt};
+    vda5050_core::types::ConnectionState::ONLINE,
+    std::nullopt,
+    std::nullopt,
+    AGVState::AVAILABLE,
+    std::nullopt,
+    nullptr};
   auto res = validate_action_conflict(
     ctx,
     wrap({make_action("anything", vda5050_core::types::BlockingType::HARD)}));
