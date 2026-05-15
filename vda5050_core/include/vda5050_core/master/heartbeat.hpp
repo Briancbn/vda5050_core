@@ -47,6 +47,13 @@ enum class HeartbeatState
 class HeartbeatListener
 {
 public:
+  // **Subclassing contract**: the listener's worker thread calls virtual
+  // methods (get_current_time, get_check_interval) through `this`. If a
+  // derived class overrides those, the derived destructor MUST call
+  // stop_connection_heartbeat() before allowing the base destructor to
+  // run. Without that, the vtable transitions from derived → base while
+  // the worker thread is mid virtual-call, which TSan reports as
+  // "data race on vptr (ctor/dtor vs virtual call)".
   HeartbeatListener(
     const std::string& id, const int heartbeat_interval,
     std::function<void()> disconnection_callback);

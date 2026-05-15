@@ -85,6 +85,12 @@ public:
 
   ~MockHeartbeatListener()
   {
+    // Stop the worker thread BEFORE the base destructor runs. listen()
+    // calls virtual methods (get_current_time, get_check_interval)
+    // through `this`; if the worker is still spinning when this mock's
+    // vtable is swapped out for the base, those calls race against the
+    // vptr transition. TSan flags this as "data race on vptr".
+    stop_connection_heartbeat();
     VDA5050_INFO("MockHeartbeatListener destroyed");
   }
 
