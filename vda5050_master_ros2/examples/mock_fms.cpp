@@ -122,13 +122,24 @@ struct FmsContext
 // Service-call helpers
 // ============================================================================
 
+// Discovery timeout is separate from the per-call timeout. On a freshly
+// spawned mock_fms (cold DDS cache), wait_for_service can legitimately
+// take several seconds before the master's service shows up — that's
+// service discovery, not service slowness. Reusing the same `timeout`
+// for both meant a slow discovery on the first call left no budget for
+// the actual round-trip, producing a spurious "call timed out". The
+// scenario-level pass/fail wants to flag *real* unresponsive services,
+// not normal discovery latency, so we give discovery its own generous
+// budget and reserve the caller's timeout for the round-trip.
+constexpr std::chrono::seconds kServiceDiscoveryTimeout{30};
+
 template <typename SrvT>
 std::shared_ptr<typename SrvT::Response> call_service(
   rclcpp::Node::SharedPtr node, const std::string& name,
   typename SrvT::Request::SharedPtr req, std::chrono::milliseconds timeout)
 {
   auto client = node->create_client<SrvT>(name);
-  if (!client->wait_for_service(timeout))
+  if (!client->wait_for_service(kServiceDiscoveryTimeout))
   {
     fmt::print(stderr, "[mock_fms] service '{}' not available\n", name);
     return nullptr;

@@ -38,6 +38,7 @@
 //   ros2 run vda5050_master_ros2 example_client
 
 #include <fmt/core.h>
+#include <unistd.h>
 
 #include <atomic>
 #include <chrono>
@@ -605,8 +606,14 @@ int main()
   const std::string serial = "S001";
 
   // SECTION 1 plumbing — adapted: shared_ptr factory + rmf2/v2 constants.
+  // Client id must be unique per process: a hardcoded id causes Paho
+  // MQTT to evict the prior connection when a fresh process reconnects,
+  // producing a disconnect ping-pong that breaks back-to-back scenario
+  // runs. Encode {serial, pid} so two example_clients with the same
+  // serial (e.g. two scenarios run in sequence) never collide.
   auto mqtt_client = vda5050_core::transport::create_default_client(
-    "tcp://localhost:1883", "vda5050_client");
+    "tcp://localhost:1883",
+    fmt::format("vda5050_client-{}-{}", serial, getpid()));
 
   // SECTION 2 — Will + Connection ONLINE before the rest of the wiring,
   // so the master sees the AGV come online as soon as we connect.
