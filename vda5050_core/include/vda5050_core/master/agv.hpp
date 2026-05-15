@@ -641,6 +641,17 @@ private:
   // cleanly via lock() rather than silently dangling.
   std::weak_ptr<VDA5050Master> parent_;
 
+  // Raw observer pointer to the same master, used ONLY by the queue
+  // processor thread inside publish_order / publish_instant_actions.
+  // We can't use parent_.lock() there: the temporary shared_ptr would
+  // extend master lifetime, and if it becomes the last reference (e.g.
+  // the test fixture's master_ goes out of scope while a publish is
+  // mid-flight), dropping the temp triggers ~master → ~AGV on the
+  // queue thread, which self-joins. VDA5050Master's destructor stops
+  // all AGV queue threads BEFORE its members destruct, so this raw
+  // pointer is guaranteed valid for the duration of any publish().
+  VDA5050Master* parent_raw_{nullptr};
+
   // Heartbeat listener for state timeout detection (protected by heartbeat_mutex_)
   mutable std::mutex heartbeat_mutex_;
   std::unique_ptr<HeartbeatListener> state_heartbeat_;

@@ -77,6 +77,24 @@ VDA5050Master::~VDA5050Master()
     mqtt_client_->set_connected_callback(nullptr);
   }
   disconnect();
+
+  // Stop AGV worker threads BEFORE agvs_ is destructed at the end of
+  // this body. Each AGV's queue-processor thread can call back into
+  // this master (e.g. get_loaded_map()) via parent_raw_; that pointer
+  // must remain valid for the lifetime of any in-flight publish. By
+  // joining queue threads here — synchronously, while *this is still
+  // fully alive — we guarantee no AGV thread is mid-call into the
+  // master when the rest of the master's members destruct.
+  {
+    std::lock_guard<std::mutex> lock(agv_mutex_);
+    for (auto& kv : agvs_)
+    {
+      if (kv.second)
+      {
+        kv.second->stop();
+      }
+    }
+  }
   VDA5050_INFO("[VDA5050Master] VDA5050Master instance destroyed");
 }
 

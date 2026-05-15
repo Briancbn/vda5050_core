@@ -81,13 +81,17 @@ public:
   void on_state_timeout(const std::string& agv_id) override
   {
     timeout_calls.fetch_add(1);
-    last_timeout_agv = agv_id;
+    std::lock_guard<std::mutex> lock(str_mu_);
+    last_timeout_agv_ = agv_id;
   }
 
   void on_state_resumed(const std::string& agv_id) override
   {
     resumed_calls.fetch_add(1);
-    last_resumed_agv = agv_id;
+    {
+      std::lock_guard<std::mutex> lock(str_mu_);
+      last_resumed_agv_ = agv_id;
+    }
     // Record dispatch order vs on_state — used to verify on_state_resumed
     // fires BEFORE on_state.
     if (state_calls.load() == 0)
@@ -101,16 +105,42 @@ public:
     const vda5050_core::types::State& /*state*/) override
   {
     state_calls.fetch_add(1);
-    last_state_agv = agv_id;
+    std::lock_guard<std::mutex> lock(str_mu_);
+    last_state_agv_ = agv_id;
+  }
+
+  std::string last_timeout_agv() const
+  {
+    std::lock_guard<std::mutex> lock(str_mu_);
+    return last_timeout_agv_;
+  }
+  std::string last_resumed_agv() const
+  {
+    std::lock_guard<std::mutex> lock(str_mu_);
+    return last_resumed_agv_;
+  }
+  std::string last_state_agv() const
+  {
+    std::lock_guard<std::mutex> lock(str_mu_);
+    return last_state_agv_;
   }
 
   std::atomic<int> timeout_calls{0};
   std::atomic<int> resumed_calls{0};
   std::atomic<int> state_calls{0};
   std::atomic<bool> resumed_before_first_state{false};
-  std::string last_timeout_agv;
-  std::string last_resumed_agv;
-  std::string last_state_agv;
+
+private:
+  // Last-seen agv_id strings are written from the heartbeat monitor
+  // thread (on_state_timeout) and the MQTT/handle thread (on_state*)
+  // while test assertions read from the main thread. Protect them
+  // behind a mutex — std::string isn't safe for cross-thread plain
+  // reads/writes even when the writer "finishes before" the reader,
+  // since TSan rightly flags the unsynchronized handoff.
+  mutable std::mutex str_mu_;
+  std::string last_timeout_agv_;
+  std::string last_resumed_agv_;
+  std::string last_state_agv_;
 };
 
 vda5050_core::types::State make_state_msg()
@@ -185,6 +215,22 @@ protected:
     c.connection_state = vda5050_core::types::ConnectionState::ONLINE;
     agv_->handle_connection(c);
   }
+
+  // Poll until the predicate is true or the deadline elapses. Used in
+  // place of fixed sleeps so heartbeat-timer assertions remain robust
+  // under TSan/ASan instrumentation, which can slow timer-thread wake-
+  // ups well past the 1s nominal heartbeat interval.
+  template <typename Pred>
+  bool wait_for(Pred pred, std::chrono::milliseconds timeout)
+  {
+    const auto deadline = std::chrono::steady_clock::now() + timeout;
+    while (std::chrono::steady_clock::now() < deadline)
+    {
+      if (pred()) return true;
+      std::this_thread::sleep_for(std::chrono::milliseconds(25));
+    }
+    return pred();
+  }
 };
 
 }  // namespace
@@ -204,12 +250,16 @@ TEST_F(StateTimeoutCallbackTest, OnStateTimeoutFiresWhenHeartbeatExceeded)
   EXPECT_EQ(master_->timeout_calls.load(), 0);
 
   // Wait past the heartbeat interval — timer fires on its monitor thread.
-  std::this_thread::sleep_for(std::chrono::milliseconds(2500));
+  // Poll rather than fixed-sleep so the test stays robust under sanitizer
+  // slowdown (TSan can stretch a 1s timer well beyond 2.5s wall time).
+  ASSERT_TRUE(wait_for(
+    [&] { return master_->timeout_calls.load() >= 1; },
+    std::chrono::milliseconds(8000)));
 
   EXPECT_EQ(agv_->get_operational_state(), AGVState::STATE_UNKNOWN);
   EXPECT_GE(master_->timeout_calls.load(), 1);
   EXPECT_EQ(
-    master_->last_timeout_agv, std::string(kManufacturer) + "/" + kSerial);
+    master_->last_timeout_agv(), std::string(kManufacturer) + "/" + kSerial);
 }
 
 TEST_F(StateTimeoutCallbackTest, OnStateTimeoutFiresOncePerSilenceEpisode)
@@ -218,9 +268,14 @@ TEST_F(StateTimeoutCallbackTest, OnStateTimeoutFiresOncePerSilenceEpisode)
   inject_online_connection();
   agv_->handle_state(make_state_msg());
 
-  // Sleep well past multiple heartbeat intervals — verifies the
-  // HeartbeatListener's one-shot guard prevents re-fire while silent.
-  std::this_thread::sleep_for(std::chrono::milliseconds(3500));
+  // Wait for the first fire, then sleep well past additional heartbeat
+  // intervals — verifies the HeartbeatListener's one-shot guard prevents
+  // re-fire while silent. Polling for the first fire is robust to
+  // sanitizer slowdown; the trailing sleep is the actual no-re-fire test.
+  ASSERT_TRUE(wait_for(
+    [&] { return master_->timeout_calls.load() >= 1; },
+    std::chrono::milliseconds(8000)));
+  std::this_thread::sleep_for(std::chrono::milliseconds(2500));
 
   EXPECT_EQ(master_->timeout_calls.load(), 1)
     << "timeout dispatch should fire exactly once per silence episode";
@@ -241,7 +296,9 @@ TEST_F(StateTimeoutCallbackTest, OnStateResumedFiresOnRecoveryAfterTimeout)
   const int resumed_after_first = master_->resumed_calls.load();
   EXPECT_GE(resumed_after_first, 1);
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(2500));
+  ASSERT_TRUE(wait_for(
+    [&] { return master_->timeout_calls.load() >= 1; },
+    std::chrono::milliseconds(8000)));
   EXPECT_EQ(agv_->get_operational_state(), AGVState::STATE_UNKNOWN);
   EXPECT_GE(master_->timeout_calls.load(), 1);
 
@@ -267,7 +324,7 @@ TEST_F(StateTimeoutCallbackTest, OnStateResumedFiresOnFirstStateFromUnknown)
   EXPECT_EQ(agv_->get_operational_state(), AGVState::AVAILABLE);
   EXPECT_EQ(master_->resumed_calls.load(), 1);
   EXPECT_EQ(
-    master_->last_resumed_agv, std::string(kManufacturer) + "/" + kSerial);
+    master_->last_resumed_agv(), std::string(kManufacturer) + "/" + kSerial);
 }
 
 TEST_F(StateTimeoutCallbackTest, OnStateResumedDoesNotFireWhenAlreadyAvailable)

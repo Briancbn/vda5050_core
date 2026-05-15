@@ -28,6 +28,28 @@ namespace vda5050_core::master::test {
 // Use the shared AGV test fixture
 using AGVOperationalStateTestFixture = AGVTestFixture;
 
+namespace {
+
+// Poll until predicate is true or the deadline elapses. Used in place
+// of fixed sleeps so heartbeat-timer assertions stay robust under TSan
+// instrumentation, which can stretch the nominal 1s heartbeat well past
+// the original 2.5s margin.
+template <typename Pred>
+bool wait_for_state(Pred pred, std::chrono::milliseconds timeout)
+{
+  const auto deadline = std::chrono::steady_clock::now() + timeout;
+  while (std::chrono::steady_clock::now() < deadline)
+  {
+    if (pred()) return true;
+    std::this_thread::sleep_for(std::chrono::milliseconds(25));
+  }
+  return pred();
+}
+
+constexpr std::chrono::milliseconds kHeartbeatTimeoutWait{8000};
+
+}  // namespace
+
 // =============================================================================
 // Initial State Tests
 // =============================================================================
@@ -97,11 +119,11 @@ TEST_F(
   agv->handle_state(create_state_msg());
   EXPECT_EQ(agv->get_operational_state(), AGVState::AVAILABLE);
 
-  // Wait for the state heartbeat timeout to trigger
-  std::this_thread::sleep_for(std::chrono::milliseconds(2500));
-
-  // Verify state has transitioned to STATE_UNKNOWN due to timeout
-  EXPECT_EQ(agv->get_operational_state(), AGVState::STATE_UNKNOWN);
+  // Wait for the state heartbeat timeout to trigger (polled — robust to
+  // sanitizer slowdown).
+  ASSERT_TRUE(wait_for_state(
+    [&] { return agv->get_operational_state() == AGVState::STATE_UNKNOWN; },
+    kHeartbeatTimeoutWait));
 }
 
 TEST_F(
@@ -145,9 +167,10 @@ TEST_F(
   agv->handle_state(create_state_msg());
   EXPECT_EQ(agv->get_operational_state(), AGVState::AVAILABLE);
 
-  // Wait for timeout
-  std::this_thread::sleep_for(std::chrono::milliseconds(2500));
-  EXPECT_EQ(agv->get_operational_state(), AGVState::STATE_UNKNOWN);
+  // Wait for timeout (polled — robust to sanitizer slowdown).
+  ASSERT_TRUE(wait_for_state(
+    [&] { return agv->get_operational_state() == AGVState::STATE_UNKNOWN; },
+    kHeartbeatTimeoutWait));
 
   // Recover by receiving state message
   agv->handle_state(create_state_msg());
@@ -252,8 +275,10 @@ TEST_F(
 
   // Wait long enough for the state-heartbeat timer to fire its
   // STATE_UNKNOWN write. With the precedence rule, the existing
-  // UNAVAILABLE must remain.
-  std::this_thread::sleep_for(std::chrono::milliseconds(2500));
+  // UNAVAILABLE must remain. Fixed sleep is required here — we're
+  // asserting the *absence* of a transition, so polling would just
+  // return immediately. Use a generous margin for sanitizer slowdown.
+  std::this_thread::sleep_for(std::chrono::milliseconds(4000));
 
   EXPECT_EQ(agv->get_operational_state(), AGVState::UNAVAILABLE);
 }
@@ -293,8 +318,9 @@ TEST_F(
   agv->handle_state(create_state_msg());
   EXPECT_EQ(agv->get_operational_state(), AGVState::AVAILABLE);
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(2500));
-  EXPECT_EQ(agv->get_operational_state(), AGVState::STATE_UNKNOWN);
+  ASSERT_TRUE(wait_for_state(
+    [&] { return agv->get_operational_state() == AGVState::STATE_UNKNOWN; },
+    kHeartbeatTimeoutWait));
 
   agv->handle_connection(create_connection_msg("CONNECTIONBROKEN"));
   EXPECT_EQ(agv->get_operational_state(), AGVState::UNAVAILABLE);

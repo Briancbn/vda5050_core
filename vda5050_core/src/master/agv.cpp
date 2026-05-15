@@ -71,7 +71,8 @@ AGV::AGV(
   agv_id_(manufacturer + "/" + serial_number),
   protocol_adapter_(protocol_adapter),
   order_lifecycle_(agv_id_),
-  parent_(std::move(parent)),
+  parent_(parent),
+  parent_raw_(parent.lock().get()),
   state_heartbeat_interval_(state_heartbeat_interval),
   created_time_(Clock::now()),
   max_queue_size_(max_queue_size),
@@ -1164,11 +1165,14 @@ void AGV::publish_order(const vda5050_core::types::Order& order)
   // Pull the master's currently-loaded map snapshot before building the
   // PreSendContext. The map is shared_ptr<const Map> — capturing it now
   // keeps it alive for the duration of validation even if the master
-  // swaps maps mid-flight.
+  // swaps maps mid-flight. Use parent_raw_ (raw pointer) instead of
+  // parent_.lock() — see parent_raw_ doc-comment for the rationale
+  // (the temporary shared_ptr would extend master lifetime and could
+  // make this thread the last-ref owner, leading to ~AGV self-join).
   std::shared_ptr<const Map> loaded_map;
-  if (auto p = parent_.lock())
+  if (parent_raw_)
   {
-    loaded_map = p->get_loaded_map();
+    loaded_map = parent_raw_->get_loaded_map();
   }
 
   // Build snapshot once under existing AGV mutexes (each getter takes its
@@ -1221,10 +1225,12 @@ void AGV::publish_instant_actions(
   }
 
   // Pull master's loaded-map snapshot for the no-map gate (#39).
+  // Use parent_raw_ instead of parent_.lock() to avoid extending master
+  // lifetime inside the queue thread — see parent_raw_ doc-comment.
   std::shared_ptr<const Map> loaded_map;
-  if (auto p = parent_.lock())
+  if (parent_raw_)
   {
-    loaded_map = p->get_loaded_map();
+    loaded_map = parent_raw_->get_loaded_map();
   }
 
   // InstantActions aren't order updates — active_order is always nullopt
