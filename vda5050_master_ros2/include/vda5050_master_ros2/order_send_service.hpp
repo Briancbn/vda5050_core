@@ -50,7 +50,7 @@ namespace vda5050_master_ros2 {
 // publish on the master's queue-processor thread. NOT AGV-acknowledged.
 // FMS observes AGV-level acceptance via the OrderStatus topic. Async
 // validator failures (schema/graph/traversability/PreSend) on the
-// queue thread are silent to this service in V0 — see Task #57.
+// queue thread are not surfaced back through this service today.
 //
 // **Order conversion**: `vda5050_interfaces::msg::Order` →
 // `vda5050_core::types::Order` via `internal::from_msg<>` (JSON

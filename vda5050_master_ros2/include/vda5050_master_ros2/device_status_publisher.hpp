@@ -37,9 +37,9 @@ namespace vda5050_master_ros2 {
 // DeviceStatusPublisher (Task #48).
 // =============================================================================
 //
-// Publishes per-AGV cached state on ROS 2 topics — V0 mirror of the
-// post-V0 AMQP Device Status Query (#40). One MASTER per fleet; one
-// publisher *triple* (state / connection / factsheet) per AGV. Topics:
+// Publishes per-AGV cached state on ROS 2 topics. One MASTER per fleet;
+// one publisher *triple* (state / connection / factsheet) per AGV.
+// Topics:
 //
 //   /<namespace>/<manufacturer>/<serial_number>/state       [vda5050_interfaces::msg::State]
 //   /<namespace>/<manufacturer>/<serial_number>/connection  [vda5050_interfaces::msg::Connection]

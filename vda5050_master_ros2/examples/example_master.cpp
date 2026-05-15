@@ -32,7 +32,7 @@
 //      `/<namespace>/assign_order` and instant actions via
 //      `/<namespace>/assign_instant_actions`.
 //
-// Pair with `example_fms` (next task) for a full scripted V0 demo.
+// Pair with `mock_fms` for a full scripted end-to-end demo.
 //
 // Run:
 //   ros2 run vda5050_master example_master

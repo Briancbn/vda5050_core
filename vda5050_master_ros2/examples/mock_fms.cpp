@@ -27,7 +27,7 @@
 //                       onboard-flood.
 //   --interactive       REPL prompt; one command per line dispatches one
 //                       service call with pretty-printed output. The
-//                       "FMS console" — useful well past V0.
+//                       "FMS console" for ad-hoc operator-side work.
 //   --monitor <serial>  Subscribe to that AGV's state / connection /
 //                       order_status topics; pretty-print only on change.
 //                       Ctrl-C to exit.
@@ -349,9 +349,22 @@ bool scenario_happy_path(FmsContext& ctx)
       ctx.node, fmt::format("/{}/onboard_agv", ctx.master_ns), req,
       ctx.timeout);
     if (!ok_nn(resp, "onboard_agv response")) return false;
-    if (!ok_eq(static_cast<int>(resp->status), 0, "onboard status"))
+    // Accept both SUCCESS (0) and ALREADY_ONBOARDED (1) — both are
+    // non-failure outcomes per the service contract. Re-runs of this
+    // scenario in the same master session normally hit ALREADY_ONBOARDED
+    // because the OffboardOnExit RAII guard runs at FUNCTION exit, but
+    // the master may still have the AGV record if a prior run failed
+    // partway. Treating ALREADY_ONBOARDED as failure would make every
+    // re-run from a dirty state spuriously fail.
+    const int onboard_status = static_cast<int>(resp->status);
+    if (onboard_status != 0 && onboard_status != 1)
+    {
+      fmt::print(
+        stderr, "  FAIL (onboard status): expected 0 or 1, got {}\n",
+        onboard_status);
       return false;
-    fmt::print("  ✓ onboard accepted\n");
+    }
+    fmt::print("  onboard accepted (status={})\n", onboard_status);
   }
 
   // 2. Wait for state to arrive (AGV publishes at 1 Hz; ~3s is plenty)
@@ -376,7 +389,7 @@ bool scenario_happy_path(FmsContext& ctx)
       }
     }
     if (!ok_nn(seen, "state + connection received")) return false;
-    fmt::print("  ✓ state + connection arrived\n");
+    fmt::print("  state + connection arrived\n");
   }
 
   // 3. AssignOrder
@@ -393,7 +406,7 @@ bool scenario_happy_path(FmsContext& ctx)
           static_cast<int>(resp->decision),
           static_cast<int>(AssignOrder::Response::ASSIGNED), "assign decision"))
       return false;
-    fmt::print("  ✓ order ASSIGNED (order_id={})\n", order_id);
+    fmt::print("  order ASSIGNED (order_id={})\n", order_id);
   }
 
   // 4. Wait for OrderStatus to reach last_node_id=N1 — assert BOTH
@@ -408,7 +421,7 @@ bool scenario_happy_path(FmsContext& ctx)
       },
       std::chrono::seconds(15));
     if (!ok_nn(ok, "order_status last_node_id=N1 within 15s")) return false;
-    fmt::print("  ✓ order reached N1 (last_node_id=N1)\n");
+    fmt::print("  order reached N1 (last_node_id=N1)\n");
   }
 
   return true;
@@ -432,7 +445,7 @@ bool scenario_stitch(FmsContext& ctx)
       ctx.timeout);
     if (!ok_nn(resp, "onboard_agv response")) return false;
     std::this_thread::sleep_for(std::chrono::seconds(3));
-    fmt::print("  ✓ onboard + state ready\n");
+    fmt::print("  onboard + state ready\n");
   }
 
   // Send base order with horizon N2.
@@ -452,7 +465,7 @@ bool scenario_stitch(FmsContext& ctx)
           static_cast<int>(AssignOrder::Response::ASSIGNED),
           "stitch base assign"))
       return false;
-    fmt::print("  ✓ base + horizon order ASSIGNED (order_id={})\n", order_id);
+    fmt::print("  base + horizon order ASSIGNED (order_id={})\n", order_id);
   }
 
   // Wait for AGV to reach N1 (last released base node). Assert
@@ -467,7 +480,7 @@ bool scenario_stitch(FmsContext& ctx)
       },
       std::chrono::seconds(15));
     if (!ok_nn(ok, "stitch base reaches N1 within 15s")) return false;
-    fmt::print("  ✓ base reached N1, horizon still parked at N2\n");
+    fmt::print("  base reached N1, horizon still parked at N2\n");
   }
 
   // Now send the update: same order_id, order_update_id=1. Per VDA5050
@@ -540,7 +553,7 @@ bool scenario_stitch(FmsContext& ctx)
           fmt::format("stitch update decision unexpectedly = {}", d)))
       return false;
     fmt::print(
-      "  ✓ horizon extension {} (decision={})\n",
+      "  horizon extension {} (decision={})\n",
       d == AssignOrder::Response::ASSIGNED ? "ASSIGNED" : "QUEUED", d);
   }
 
@@ -556,7 +569,7 @@ bool scenario_stitch(FmsContext& ctx)
       },
       std::chrono::seconds(20));
     if (!ok_nn(ok, "stitch reaches N2 within 20s")) return false;
-    fmt::print("  ✓ AGV reached extended horizon N2\n");
+    fmt::print("  AGV reached extended horizon N2\n");
   }
 
   return true;
@@ -578,7 +591,7 @@ bool scenario_broker_bounce(FmsContext& ctx)
   if (!ok_eq(static_cast<int>(resp->connected), 1, "broker connected at start"))
     return false;
   fmt::print(
-    "  ✓ broker status reports connected (reconnect_count={})\n",
+    "  broker status reports connected (reconnect_count={})\n",
     resp->reconnect_count);
   fmt::print(
     "  (operator: run `sudo systemctl restart mosquitto` and re-run "
@@ -600,7 +613,7 @@ bool scenario_onboard_flood(FmsContext& ctx)
       ctx.timeout);
     if (!ok_nn(resp, fmt::format("onboard {}", s))) return false;
     fmt::print(
-      "  ✓ onboarded {} (status={})\n", s, static_cast<int>(resp->status));
+      "  onboarded {} (status={})\n", s, static_cast<int>(resp->status));
   }
   // Cleanup: offboard them.
   for (const auto& s : serials)
@@ -613,7 +626,7 @@ bool scenario_onboard_flood(FmsContext& ctx)
       ctx.timeout);
     if (!ok_nn(resp, fmt::format("offboard {}", s))) return false;
   }
-  fmt::print("  ✓ flood completed and cleaned up\n");
+  fmt::print("  flood completed and cleaned up\n");
   return true;
 }
 
