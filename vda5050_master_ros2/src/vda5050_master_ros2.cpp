@@ -128,14 +128,9 @@ VDA5050MasterROS2::VDA5050MasterROS2(
 std::pair<std::string, std::string> VDA5050MasterROS2::split_agv_id(
   const std::string& agv_id)
 {
-  // Format per master.cpp:228 is "{manufacturer}/{serial_number}".
+  // master keeps agvs_ keyed as "{mfg}/{sn}" (master.cpp:228).
   const auto slash = agv_id.find('/');
-  if (slash == std::string::npos)
-  {
-    // Defensive: degraded form. Treat whole id as manufacturer with
-    // empty serial. Will produce a malformed topic but won't crash.
-    return {agv_id, std::string{}};
-  }
+  if (slash == std::string::npos) return {agv_id, std::string{}};
   return {agv_id.substr(0, slash), agv_id.substr(slash + 1)};
 }
 
@@ -145,15 +140,16 @@ void VDA5050MasterROS2::on_state(
   auto [mfg, serial] = split_agv_id(agv_id);
   device_status_->publish_state(mfg, serial, state);
 
-  // Publish OrderStatus alongside the device-status State stream. The
-  // bundle's State is the one just cached by handle_state (which runs
-  // before this on_state callback), so the bundle is fresh by
-  // construction.
+  // OrderStatus + combined DeviceStatus alongside the per-component
+  // State stream. handle_state has already cached the new State, so
+  // both the order bundle and the status snapshot reflect it.
   if (auto agv = get_agv(mfg, serial))
   {
     auto bundle = agv->get_order_status_bundle();
     auto msg = build_order_status_msg(bundle, mfg, serial);
     order_status_publisher_->publish_order_status(mfg, serial, msg);
+    device_status_->publish_device_status(
+      mfg, serial, agv->get_status_snapshot());
   }
 
   vda5050_core::master::VDA5050Master::on_state(agv_id, state);
@@ -164,6 +160,11 @@ void VDA5050MasterROS2::on_connection(
 {
   auto [mfg, serial] = split_agv_id(agv_id);
   device_status_->publish_connection(mfg, serial, connection);
+  if (auto agv = get_agv(mfg, serial))
+  {
+    device_status_->publish_device_status(
+      mfg, serial, agv->get_status_snapshot());
+  }
   vda5050_core::master::VDA5050Master::on_connection(agv_id, connection);
 }
 
@@ -172,6 +173,11 @@ void VDA5050MasterROS2::on_factsheet(
 {
   auto [mfg, serial] = split_agv_id(agv_id);
   device_status_->publish_factsheet(mfg, serial, factsheet);
+  if (auto agv = get_agv(mfg, serial))
+  {
+    device_status_->publish_device_status(
+      mfg, serial, agv->get_status_snapshot());
+  }
   vda5050_core::master::VDA5050Master::on_factsheet(agv_id, factsheet);
 }
 

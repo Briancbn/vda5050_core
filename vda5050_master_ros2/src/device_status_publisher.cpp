@@ -18,6 +18,8 @@
 
 #include "vda5050_master_ros2/device_status_publisher.hpp"
 
+#include <chrono>
+#include <cstdint>
 #include <string>
 #include <utility>
 
@@ -26,6 +28,24 @@
 
 namespace vda5050_master_ros2 {
 using internal::to_msg;
+
+namespace {
+
+builtin_interfaces::msg::Time to_ros_time(
+  const vda5050_core::master::AGV::TimePoint& tp)
+{
+  const auto since_epoch = tp.time_since_epoch();
+  const auto secs =
+    std::chrono::duration_cast<std::chrono::seconds>(since_epoch);
+  const auto nsecs =
+    std::chrono::duration_cast<std::chrono::nanoseconds>(since_epoch - secs);
+  builtin_interfaces::msg::Time out;
+  out.sec = static_cast<std::int32_t>(secs.count());
+  out.nanosec = static_cast<std::uint32_t>(nsecs.count());
+  return out;
+}
+
+}  // namespace
 
 DeviceStatusPublisher::DeviceStatusPublisher(
   rclcpp::Node::SharedPtr node, const std::string& topic_namespace)
@@ -75,6 +95,12 @@ std::string DeviceStatusPublisher::factsheet_topic(
   return make_topic(manufacturer, serial_number, "factsheet");
 }
 
+std::string DeviceStatusPublisher::device_status_topic(
+  const std::string& manufacturer, const std::string& serial_number) const
+{
+  return make_topic(manufacturer, serial_number, "device_status");
+}
+
 bool DeviceStatusPublisher::has_publishers_for(
   const std::string& manufacturer, const std::string& serial_number) const
 {
@@ -99,12 +125,21 @@ DeviceStatusPublisher::ensure_publishers_locked(
   pubs.factsheet = node_->create_publisher<vda5050_interfaces::msg::Factsheet>(
     factsheet_topic(manufacturer, serial_number), kQosDepth);
 
+  // Combined snapshot — latched so a late subscriber gets the current
+  // view immediately, without waiting for the next State arrival.
+  rclcpp::QoS combined_qos(kQosDepthCombined);
+  combined_qos.reliable().transient_local();
+  pubs.device_status =
+    node_->create_publisher<vda5050_master_ros2::msg::DeviceStatus>(
+      device_status_topic(manufacturer, serial_number), combined_qos);
+
   VDA5050_INFO(
     "[DeviceStatusPublisher] created publishers for {} on topics {} / {} / "
-    "{}",
+    "{} / {}",
     id, state_topic(manufacturer, serial_number),
     connection_topic(manufacturer, serial_number),
-    factsheet_topic(manufacturer, serial_number));
+    factsheet_topic(manufacturer, serial_number),
+    device_status_topic(manufacturer, serial_number));
 
   return publishers_.emplace(id, std::move(pubs)).first->second;
 }
@@ -142,6 +177,56 @@ void DeviceStatusPublisher::publish_factsheet(
     to_msg<vda5050_core::types::Factsheet, vda5050_interfaces::msg::Factsheet>(
       factsheet);
   pubs.factsheet->publish(std::move(msg));
+}
+
+void DeviceStatusPublisher::publish_device_status(
+  const std::string& manufacturer, const std::string& serial_number,
+  const vda5050_core::master::AGV::StatusSnapshot& snapshot)
+{
+  std::lock_guard<std::mutex> lock(mutex_);
+  auto& pubs = ensure_publishers_locked(manufacturer, serial_number);
+
+  vda5050_master_ros2::msg::DeviceStatus msg;
+  msg.manufacturer = manufacturer;
+  msg.serial_number = serial_number;
+  msg.stamp = node_->now();
+
+  if (snapshot.state.has_value())
+  {
+    msg.state.push_back(
+      to_msg<vda5050_core::types::State, vda5050_interfaces::msg::State>(
+        *snapshot.state));
+    if (snapshot.state_received_at.has_value())
+    {
+      msg.state_received_at.push_back(to_ros_time(*snapshot.state_received_at));
+    }
+  }
+  if (snapshot.connection.has_value())
+  {
+    msg.connection.push_back(
+      to_msg<
+        vda5050_core::types::Connection, vda5050_interfaces::msg::Connection>(
+        *snapshot.connection));
+    if (snapshot.connection_received_at.has_value())
+    {
+      msg.connection_received_at.push_back(
+        to_ros_time(*snapshot.connection_received_at));
+    }
+  }
+  if (snapshot.factsheet.has_value())
+  {
+    msg.factsheet.push_back(
+      to_msg<
+        vda5050_core::types::Factsheet, vda5050_interfaces::msg::Factsheet>(
+        *snapshot.factsheet));
+    if (snapshot.factsheet_received_at.has_value())
+    {
+      msg.factsheet_received_at.push_back(
+        to_ros_time(*snapshot.factsheet_received_at));
+    }
+  }
+
+  pubs.device_status->publish(std::move(msg));
 }
 
 void DeviceStatusPublisher::remove_agv(

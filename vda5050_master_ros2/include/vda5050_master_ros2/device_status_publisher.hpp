@@ -25,12 +25,14 @@
 #include <unordered_map>
 
 #include "rclcpp/rclcpp.hpp"
+#include "vda5050_core/master/agv.hpp"
 #include "vda5050_core/types/connection.hpp"
 #include "vda5050_core/types/factsheet.hpp"
 #include "vda5050_core/types/state.hpp"
 #include "vda5050_interfaces/msg/connection.hpp"
 #include "vda5050_interfaces/msg/factsheet.hpp"
 #include "vda5050_interfaces/msg/state.hpp"
+#include "vda5050_master_ros2/msg/device_status.hpp"
 
 namespace vda5050_master_ros2 {
 // =============================================================================
@@ -64,10 +66,15 @@ namespace vda5050_master_ros2 {
 class DeviceStatusPublisher
 {
 public:
-  /// QoS depth for all 3 topics. State is high-cadence (every 30s+),
-  /// Connection rarely changes, Factsheet very rarely. Depth 10 covers
-  /// late subscribers without unbounded memory.
+  /// QoS depth for the per-component topics. State is high-cadence
+  /// (every 30s+), Connection rarely changes, Factsheet very rarely.
+  /// Depth 10 covers late subscribers without unbounded memory.
   static constexpr int kQosDepth = 10;
+
+  /// QoS depth for the combined `device_status` topic. The topic is
+  /// latched (RELIABLE + TRANSIENT_LOCAL); a late subscriber receives
+  /// the most recent snapshot and we do not need history beyond that.
+  static constexpr int kQosDepthCombined = 1;
 
   /// Default ROS 2 namespace prefix for all per-AGV topics.
   static constexpr const char* kDefaultNamespace = "vda5050_master";
@@ -104,6 +111,19 @@ public:
     const std::string& manufacturer, const std::string& serial_number,
     const vda5050_core::types::Factsheet& factsheet);
 
+  /// \brief Publish a combined DeviceStatus message — one snapshot
+  ///        carrying the latest cached State + Connection + Factsheet
+  ///        for the AGV. Fields that have never been received from the
+  ///        AGV are conveyed as empty bounded arrays. Latched topic
+  ///        (TRANSIENT_LOCAL) so a late subscriber gets the current
+  ///        snapshot immediately. Typically called from the State /
+  ///        Connection / Factsheet receive callbacks after the
+  ///        per-component publish, so every cache update produces a
+  ///        fresh combined snapshot.
+  void publish_device_status(
+    const std::string& manufacturer, const std::string& serial_number,
+    const vda5050_core::master::AGV::StatusSnapshot& snapshot);
+
   /// \brief Drop publishers for an AGV (called from offboard_agv path).
   void remove_agv(
     const std::string& manufacturer, const std::string& serial_number);
@@ -115,6 +135,8 @@ public:
   std::string connection_topic(
     const std::string& manufacturer, const std::string& serial_number) const;
   std::string factsheet_topic(
+    const std::string& manufacturer, const std::string& serial_number) const;
+  std::string device_status_topic(
     const std::string& manufacturer, const std::string& serial_number) const;
 
   /// \brief True iff publishers for this AGV have been lazy-created.
@@ -129,6 +151,8 @@ private:
     rclcpp::Publisher<vda5050_interfaces::msg::Connection>::SharedPtr
       connection;
     rclcpp::Publisher<vda5050_interfaces::msg::Factsheet>::SharedPtr factsheet;
+    rclcpp::Publisher<vda5050_master_ros2::msg::DeviceStatus>::SharedPtr
+      device_status;
   };
 
   // Build the AGV identity used as map key.

@@ -25,6 +25,7 @@ include(GNUInstallDirs)
 set(msg_files
   msg/AgvAlignment.msg
   msg/AgvAlignmentFinding.msg
+  msg/DeviceStatus.msg
   msg/OrderStatus.msg
 )
 set(srv_files

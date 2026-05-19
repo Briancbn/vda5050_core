@@ -26,6 +26,7 @@
 
 #include "rclcpp/executors/single_threaded_executor.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "vda5050_core/master/agv.hpp"
 #include "vda5050_core/types/connection.hpp"
 #include "vda5050_core/types/factsheet.hpp"
 #include "vda5050_core/types/state.hpp"
@@ -33,6 +34,7 @@
 #include "vda5050_interfaces/msg/factsheet.hpp"
 #include "vda5050_interfaces/msg/state.hpp"
 #include "vda5050_master_ros2/device_status_publisher.hpp"
+#include "vda5050_master_ros2/msg/device_status.hpp"
 
 namespace vda5050_master_ros2 {
 namespace test {
@@ -230,6 +232,195 @@ TEST_F(DeviceStatusPublisherTest, MultipleAGVs_HavePublishersIndependently)
   pub.remove_agv("ACME", "AGV01");
   EXPECT_FALSE(pub.has_publishers_for("ACME", "AGV01"));
   EXPECT_TRUE(pub.has_publishers_for("OTHER", "AGV02"));
+}
+
+// =============================================================================
+// Combined DeviceStatus topic
+// =============================================================================
+//
+// The combined topic is RELIABLE + TRANSIENT_LOCAL (latched). Subscribers
+// must match that QoS to receive messages.
+
+namespace {
+
+using vda5050_core::master::AGV;
+
+rclcpp::QoS latched_qos()
+{
+  rclcpp::QoS qos(DeviceStatusPublisher::kQosDepthCombined);
+  qos.reliable().transient_local();
+  return qos;
+}
+
+vda5050_core::types::Connection make_connection()
+{
+  vda5050_core::types::Connection c;
+  c.header.version = "2.0.0";
+  c.header.manufacturer = kMfg;
+  c.header.serial_number = kSerial;
+  c.connection_state = vda5050_core::types::ConnectionState::ONLINE;
+  return c;
+}
+
+vda5050_core::types::Factsheet make_factsheet()
+{
+  vda5050_core::types::Factsheet f;
+  f.header.version = "2.0.0";
+  f.header.manufacturer = kMfg;
+  f.header.serial_number = kSerial;
+  return f;
+}
+
+vda5050_core::types::State make_state()
+{
+  vda5050_core::types::State s;
+  s.header.version = "2.0.0";
+  s.header.manufacturer = kMfg;
+  s.header.serial_number = kSerial;
+  s.operating_mode = vda5050_core::types::OperatingMode::AUTOMATIC;
+  return s;
+}
+
+}  // namespace
+
+TEST_F(DeviceStatusPublisherTest, CombinedTopicNameFollowsConvention)
+{
+  DeviceStatusPublisher pub(node_);
+  EXPECT_EQ(
+    pub.device_status_topic(kMfg, kSerial),
+    "/vda5050_master/ACME/AGV01/device_status");
+}
+
+TEST_F(DeviceStatusPublisherTest, CombinedCustomNamespaceApplies)
+{
+  DeviceStatusPublisher pub(node_, "my_master");
+  EXPECT_EQ(
+    pub.device_status_topic(kMfg, kSerial),
+    "/my_master/ACME/AGV01/device_status");
+}
+
+TEST_F(DeviceStatusPublisherTest, CombinedFullSnapshotPopulatesAllArrays)
+{
+  DeviceStatusPublisher pub(node_);
+
+  std::atomic<int> count{0};
+  vda5050_master_ros2::msg::DeviceStatus received;
+  auto sub = node_->create_subscription<vda5050_master_ros2::msg::DeviceStatus>(
+    pub.device_status_topic(kMfg, kSerial), latched_qos(),
+    [&](const vda5050_master_ros2::msg::DeviceStatus::SharedPtr msg) {
+      received = *msg;
+      count.fetch_add(1);
+    });
+
+  AGV::StatusSnapshot snap;
+  snap.state = make_state();
+  snap.connection = make_connection();
+  snap.factsheet = make_factsheet();
+  snap.state_received_at = AGV::Clock::now();
+  snap.connection_received_at = AGV::Clock::now();
+  snap.factsheet_received_at = AGV::Clock::now();
+  pub.publish_device_status(kMfg, kSerial, snap);
+
+  ASSERT_TRUE(
+    wait_for([&] { return count.load() >= 1; }, std::chrono::milliseconds(500)))
+    << "combined snapshot never reached subscriber";
+
+  EXPECT_EQ(received.manufacturer, kMfg);
+  EXPECT_EQ(received.serial_number, kSerial);
+  ASSERT_EQ(received.state.size(), 1u);
+  ASSERT_EQ(received.connection.size(), 1u);
+  ASSERT_EQ(received.factsheet.size(), 1u);
+  EXPECT_EQ(received.state[0].header.manufacturer, kMfg);
+  EXPECT_EQ(received.connection[0].header.serial_number, kSerial);
+  EXPECT_EQ(received.factsheet[0].header.serial_number, kSerial);
+  ASSERT_EQ(received.state_received_at.size(), 1u);
+  ASSERT_EQ(received.connection_received_at.size(), 1u);
+  ASSERT_EQ(received.factsheet_received_at.size(), 1u);
+  EXPECT_GT(received.state_received_at[0].sec, 0);
+}
+
+TEST_F(DeviceStatusPublisherTest, CombinedEmptySnapshotProducesEmptyArrays)
+{
+  DeviceStatusPublisher pub(node_);
+
+  std::atomic<int> count{0};
+  vda5050_master_ros2::msg::DeviceStatus received;
+  auto sub = node_->create_subscription<vda5050_master_ros2::msg::DeviceStatus>(
+    pub.device_status_topic(kMfg, kSerial), latched_qos(),
+    [&](const vda5050_master_ros2::msg::DeviceStatus::SharedPtr msg) {
+      received = *msg;
+      count.fetch_add(1);
+    });
+
+  AGV::StatusSnapshot snap;  // all optionals nullopt
+  pub.publish_device_status(kMfg, kSerial, snap);
+
+  ASSERT_TRUE(
+    wait_for([&] { return count.load() >= 1; }, std::chrono::milliseconds(500)))
+    << "combined snapshot never reached subscriber";
+
+  EXPECT_EQ(received.manufacturer, kMfg);
+  EXPECT_EQ(received.serial_number, kSerial);
+  EXPECT_TRUE(received.state.empty());
+  EXPECT_TRUE(received.connection.empty());
+  EXPECT_TRUE(received.factsheet.empty());
+  EXPECT_TRUE(received.state_received_at.empty());
+  EXPECT_TRUE(received.connection_received_at.empty());
+  EXPECT_TRUE(received.factsheet_received_at.empty());
+}
+
+TEST_F(DeviceStatusPublisherTest, CombinedPartialSnapshotOnlyPopulatesPresent)
+{
+  DeviceStatusPublisher pub(node_);
+
+  std::atomic<int> count{0};
+  vda5050_master_ros2::msg::DeviceStatus received;
+  auto sub = node_->create_subscription<vda5050_master_ros2::msg::DeviceStatus>(
+    pub.device_status_topic(kMfg, kSerial), latched_qos(),
+    [&](const vda5050_master_ros2::msg::DeviceStatus::SharedPtr msg) {
+      received = *msg;
+      count.fetch_add(1);
+    });
+
+  AGV::StatusSnapshot snap;
+  snap.state = make_state();
+  snap.state_received_at = AGV::Clock::now();
+  // connection + factsheet remain nullopt.
+  pub.publish_device_status(kMfg, kSerial, snap);
+
+  ASSERT_TRUE(
+    wait_for([&] { return count.load() >= 1; }, std::chrono::milliseconds(500)))
+    << "combined snapshot never reached subscriber";
+
+  ASSERT_EQ(received.state.size(), 1u);
+  EXPECT_TRUE(received.connection.empty());
+  EXPECT_TRUE(received.factsheet.empty());
+  ASSERT_EQ(received.state_received_at.size(), 1u);
+  EXPECT_TRUE(received.connection_received_at.empty());
+  EXPECT_TRUE(received.factsheet_received_at.empty());
+}
+
+TEST_F(DeviceStatusPublisherTest, CombinedLatchedDeliveryReachesLateSubscriber)
+{
+  DeviceStatusPublisher pub(node_);
+
+  AGV::StatusSnapshot snap;
+  snap.state = make_state();
+  snap.state_received_at = AGV::Clock::now();
+  pub.publish_device_status(kMfg, kSerial, snap);
+
+  // Subscribe AFTER the publish. TRANSIENT_LOCAL must deliver the
+  // latched message to this late joiner.
+  std::atomic<int> count{0};
+  auto sub = node_->create_subscription<vda5050_master_ros2::msg::DeviceStatus>(
+    pub.device_status_topic(kMfg, kSerial), latched_qos(),
+    [&](const vda5050_master_ros2::msg::DeviceStatus::SharedPtr) {
+      count.fetch_add(1);
+    });
+
+  EXPECT_TRUE(wait_for(
+    [&] { return count.load() >= 1; }, std::chrono::milliseconds(1000)))
+    << "late subscriber did not receive latched message";
 }
 
 }  // namespace test
