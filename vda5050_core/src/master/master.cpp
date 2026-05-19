@@ -146,6 +146,22 @@ bool VDA5050Master::is_connected() const
 // AGV Onboarding/Offboarding
 // ============================================================================
 
+std::shared_ptr<AGV> VDA5050Master::create_agv_locked_(
+  const std::string& manufacturer, const std::string& serial_number,
+  std::size_t max_queue_size, bool drop_oldest)
+{
+  // weak_from_this() back-ref lets the AGV dispatch into our virtuals
+  // and detect master destruction.
+  auto agv = std::make_shared<AGV>(
+    vda5050_core::execution::ProtocolAdapter::make(
+      mqtt_client_, InterfaceName, Version, manufacturer, serial_number),
+    manufacturer, serial_number, max_queue_size, drop_oldest,
+    StateHeartbeatInterval, weak_from_this());
+  // Wire subscriptions outside the ctor so weak_from_this() is valid.
+  agv->setup_subscriptions();
+  return agv;
+}
+
 void VDA5050Master::onboard_agv(
   const std::string& manufacturer, const std::string& serial_number,
   size_t max_queue_size, bool drop_oldest)
@@ -160,24 +176,108 @@ void VDA5050Master::onboard_agv(
     return;
   }
 
-  // Create AGV instance with a new protocol adapter. Pass weak_from_this()
-  // as the back-pointer so the AGV can dispatch incoming messages to the
-  // master's virtual callbacks (on_state, on_connection, etc.) while
-  // detecting master destruction cleanly via lock().
-  auto agv = std::make_shared<AGV>(
-    vda5050_core::execution::ProtocolAdapter::make(
-      mqtt_client_, InterfaceName, Version, manufacturer, serial_number),
-    manufacturer, serial_number, max_queue_size, drop_oldest,
-    StateHeartbeatInterval, weak_from_this());
-
-  // Subscriptions are wired here (not in AGV's ctor) so that
-  // AGV::weak_from_this() is valid — make_shared above has
-  // associated the shared_ptr by this point.
-  agv->setup_subscriptions();
-
-  agvs_[agv_id] = std::move(agv);
+  agvs_[agv_id] = create_agv_locked_(
+    manufacturer, serial_number, max_queue_size, drop_oldest);
 
   VDA5050_INFO("[VDA5050Master] Onboarded AGV: {}", agv_id);
+}
+
+VDA5050Master::BatchOnboardResult VDA5050Master::onboard_agv_batch(
+  const std::vector<OnboardSpec>& specs)
+{
+  BatchOnboardResult result;
+  std::lock_guard<std::mutex> lock(agv_mutex_);
+
+  for (const auto& spec : specs)
+  {
+    if (spec.manufacturer.empty() || spec.serial_number.empty())
+    {
+      result.failed++;
+      result.failed_keys.emplace_back(spec.manufacturer, spec.serial_number);
+      VDA5050_WARN(
+        "[VDA5050Master] onboard_agv_batch: empty manufacturer or serial "
+        "rejected");
+      continue;
+    }
+
+    const std::string agv_id = spec.manufacturer + "/" + spec.serial_number;
+    if (agvs_.find(agv_id) != agvs_.end())
+    {
+      result.skipped_already_onboarded++;
+      continue;
+    }
+
+    agvs_[agv_id] = create_agv_locked_(
+      spec.manufacturer, spec.serial_number, spec.max_queue_size,
+      spec.drop_oldest);
+    result.onboarded_count++;
+  }
+
+  VDA5050_INFO(
+    "[VDA5050Master] onboard_agv_batch: onboarded={} skipped={} failed={}",
+    result.onboarded_count, result.skipped_already_onboarded, result.failed);
+  return result;
+}
+
+std::size_t VDA5050Master::offboard_agv_batch(
+  const std::vector<std::pair<std::string, std::string>>& keys)
+{
+  // AGV::stop() joins the queue thread; gather under the lock and
+  // stop outside, same as offboard_agv().
+  std::vector<std::shared_ptr<AGV>> to_stop;
+  to_stop.reserve(keys.size());
+  {
+    std::lock_guard<std::mutex> lock(agv_mutex_);
+    for (const auto& key : keys)
+    {
+      if (key.first.empty() || key.second.empty()) continue;
+      const std::string agv_id = key.first + "/" + key.second;
+      auto it = agvs_.find(agv_id);
+      if (it == agvs_.end()) continue;
+      if (it->second) to_stop.push_back(std::move(it->second));
+      agvs_.erase(it);
+    }
+  }
+
+  {
+    std::lock_guard<std::mutex> lock(assignments_mutex_);
+    for (const auto& key : keys)
+    {
+      if (key.first.empty() || key.second.empty()) continue;
+      active_assignments_.erase(key.first + "/" + key.second);
+    }
+  }
+
+  for (auto& agv : to_stop)
+  {
+    if (agv) agv->stop();
+  }
+
+  VDA5050_INFO(
+    "[VDA5050Master] offboard_agv_batch: offboarded={}", to_stop.size());
+  return to_stop.size();
+}
+
+std::vector<std::pair<std::string, std::string>>
+VDA5050Master::get_onboarded_agvs() const
+{
+  std::lock_guard<std::mutex> lock(agv_mutex_);
+  std::vector<std::pair<std::string, std::string>> out;
+  out.reserve(agvs_.size());
+  for (const auto& kv : agvs_)
+  {
+    const std::string& agv_id = kv.first;
+    const auto slash = agv_id.find('/');
+    if (slash == std::string::npos)
+    {
+      out.emplace_back(agv_id, std::string{});
+    }
+    else
+    {
+      out.emplace_back(agv_id.substr(0, slash), agv_id.substr(slash + 1));
+    }
+  }
+  return out;
 }
 
 void VDA5050Master::offboard_agv(
@@ -205,8 +305,6 @@ void VDA5050Master::offboard_agv(
   // before the AGV instance is gone.
   agv->stop();
 
-  // Drop any active assignment_id correlation — the AGV is gone, so
-  // any in-flight async dispatch result for it would be meaningless.
   {
     std::lock_guard<std::mutex> lock(assignments_mutex_);
     active_assignments_.erase(agv_id);

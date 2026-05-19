@@ -299,6 +299,7 @@ if(BUILD_TESTING)
     test/master/test_integration_master_mode_handling.cpp
     test/master/test_integration_master_state_timeout.cpp
     test/master/test_integration_master_broker_status.cpp
+    test/master/test_master_onboard_batch.cpp
   )
   target_link_libraries(test_master vda5050_core::master)
 

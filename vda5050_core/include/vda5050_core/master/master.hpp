@@ -261,41 +261,62 @@ public:
     const vda5050_core::types::Order& order);
 
   // ============================================================================
-  // Assignment correlation (async dispatch — Task #57 wire-async equivalent
-  // of assign_order). The async ROS 2 layer
-  // (AssignOrderRequestSubscriber / AssignmentResultPublisher) carries a
-  // caller-generated UUID through the dispatch path so callers can match
-  // an AssignmentResult to its OrderStatus stream by `assignment_id`.
-  // These methods give the ROS 2 layer somewhere to stash that UUID
-  // alongside the lifecycle so the OrderStatus builder can echo it back.
-  //
-  // V0 semantics: at most one active assignment per (mfg, serial). A
-  // second record_assignment for the same AGV overwrites the previous
-  // entry. Real dedup / multi-pending support is post-V0.
-  //
-  // Threading: protected by `assignments_mutex_`. The map is small
-  // (one entry per AGV) and only accessed from the wire-async dispatch
-  // path; never acquired together with `agv_mutex_`, so there is no
-  // ordering constraint.
+  // Batch onboarding — Device Manager integration. V0 body is a
+  // sequential loop under a single lock; signature is stable for a
+  // future batched MQTT SUBSCRIBE swap.
   // ============================================================================
 
-  /// \brief Record an assignment_id alongside its order_id / update_id
-  ///        for an AGV. Called by AssignOrderRequestSubscriber after
-  ///        VDA5050Master::assign_order returns ASSIGNED or QUEUED.
-  ///        Empty `assignment_id` is treated as clear.
+  /// One AGV's slot in a batch onboarding request. Same parameters as
+  /// `onboard_agv()`.
+  struct OnboardSpec
+  {
+    std::string manufacturer;
+    std::string serial_number;
+    std::size_t max_queue_size = 10;
+    bool drop_oldest = true;
+  };
+
+  /// Summary of a batch call. Never throws; per-entry failures land
+  /// in `failed` / `failed_keys`.
+  struct BatchOnboardResult
+  {
+    std::size_t onboarded_count = 0;
+    std::size_t skipped_already_onboarded = 0;
+    std::size_t failed = 0;
+    std::vector<std::pair<std::string, std::string>> failed_keys;
+  };
+
+  /// Onboard a batch of AGVs under a single `agv_mutex_` acquisition.
+  /// Idempotent per AGV (already-onboarded entries are skipped);
+  /// empty mfg or serial counted as failed.
+  BatchOnboardResult onboard_agv_batch(const std::vector<OnboardSpec>& specs);
+
+  /// Offboard each `{mfg, serial}` key if present. Missing keys are
+  /// silently ignored. Returns the number actually offboarded.
+  std::size_t offboard_agv_batch(
+    const std::vector<std::pair<std::string, std::string>>& keys);
+
+  /// Snapshot of currently-onboarded AGVs as `{mfg, serial}` pairs.
+  std::vector<std::pair<std::string, std::string>> get_onboarded_agvs() const;
+
+  // ============================================================================
+  // Assignment correlation — caller UUID stash for async dispatch.
+  // At most one active assignment per (mfg, serial); a second record
+  // overwrites. Protected by `assignments_mutex_`; never held with
+  // `agv_mutex_`.
+  // ============================================================================
+
+  /// Record an assignment_id for an AGV. Empty assignment_id clears.
   void record_assignment(
     const std::string& manufacturer, const std::string& serial_number,
     const std::string& assignment_id, const std::string& order_id,
     std::uint32_t order_update_id);
 
-  /// \brief Look up the active assignment_id for an AGV. Returns empty
-  ///        string if no active assignment is recorded — used by the
-  ///        OrderStatus builder to populate the correlation field.
+  /// Return the active assignment_id for an AGV, or empty if none.
   std::string get_active_assignment_id(
     const std::string& manufacturer, const std::string& serial_number) const;
 
-  /// \brief Clear the active assignment_id mapping for an AGV. Called
-  ///        when the order lifecycle ends or when offboarding.
+  /// Drop the active assignment_id mapping for an AGV.
   void clear_assignment(
     const std::string& manufacturer, const std::string& serial_number);
 
@@ -707,6 +728,14 @@ private:
   // ============================================================================
 
   std::shared_ptr<AGV> get_agv_by_id(const std::string& agv_id) const;
+
+  // Build an AGV instance + wire its subscriptions. Caller must hold
+  // `agv_mutex_` and is responsible for inserting the returned
+  // shared_ptr into `agvs_`. Shared between `onboard_agv()` and
+  // `onboard_agv_batch()` so the per-AGV setup lives in one place.
+  std::shared_ptr<AGV> create_agv_locked_(
+    const std::string& manufacturer, const std::string& serial_number,
+    std::size_t max_queue_size, bool drop_oldest);
 
   // ============================================================================
   // Member Variables
