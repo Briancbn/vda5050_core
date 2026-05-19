@@ -9,20 +9,60 @@ surface (to FMS clients).
 
 | Component | Purpose |
 |---|---|
-| `VDA5050MasterROS2` library | Wraps `vda5050_core::master::VDA5050Master` + 10 ROS 2 services + 4 per-AGV topics |
+| `VDA5050MasterROS2` library | Wraps `vda5050_core::master::VDA5050Master` + 12 ROS 2 services + 5 per-AGV topics + 4 global topics |
 | `example_master` | Reference master executable — loads `sample_map.json`, advertises all endpoints |
 | `mock_client` | Standalone single-AGV pure-MQTT stub (no rclcpp) for fault-injection testing |
 | `example_client` | Ported VDA5050 client framework + `MinimalStatePublisher` for interop testing |
 | `mock_fms` | FMS-side driver: scripted end-to-end scenarios with pass/fail exit codes |
 
-Per-AGV ROS 2 topics created on first `Connection ONLINE`:
-- `/<ns>/<mfg>/<serial>/{state,connection,factsheet,order_status}`
+## Endpoints
 
-Services (10) under `/<ns>/`:
-- `assign_order`, `assign_instant_actions`
-- `onboard_agv`, `offboard_agv`
-- `get_device_status`, `get_order_status`, `get_loaded_map`, `get_master_broker_status`
-- `resume_mode_cancelled_queue`, `discard_mode_cancelled_queue`
+Default `<ns>` = `vda5050_master`; override via the `VDA5050MasterROS2`
+ctor's `topic_namespace` argument for multi-master deployments.
+
+### Per-AGV topics (5)
+
+Created on first `Connection ONLINE` from the AGV. Continuous publish
+streams — async observers subscribe without polling.
+
+| Topic | Type | Purpose |
+|---|---|---|
+| `/<ns>/<mfg>/<serial>/state` | `vda5050_interfaces/State` | Raw VDA5050 State at AGV's publish rate |
+| `/<ns>/<mfg>/<serial>/connection` | `vda5050_interfaces/Connection` | Connection state edges: `ONLINE` / `OFFLINE` / `CONNECTION_BROKEN` |
+| `/<ns>/<mfg>/<serial>/factsheet` | `vda5050_interfaces/Factsheet` | AGV capability declaration (typeSpec, physicalParameters, etc.) |
+| `/<ns>/<mfg>/<serial>/device_status` | `vda5050_master_ros2/DeviceStatus` | Combined snapshot — single-subscription convenience for consumers that want one topic instead of three |
+| `/<ns>/<mfg>/<serial>/order_status` | `vda5050_master_ros2/OrderStatus` | Master's lifecycle view: phase + last_node + base/horizon counts + action_states + errors |
+
+### Global topics (4)
+
+| Topic | Direction | QoS | Purpose |
+|---|---|---|---|
+| `/<ns>/assign_order_request` | external → master | RELIABLE / VOLATILE | Wire-async order dispatch. Caller publishes `AssignOrderRequest` with caller-generated `assignment_id` UUID |
+| `/<ns>/assignment_results` | master → external | RELIABLE / VOLATILE | Per-`assignment_id` outcome. Decision enum: `ACCEPTED` / `QUEUED` / `REJECTED_PREFLIGHT` / `REJECTED_POSTFLIGHT` |
+| `/<ns>/fleet_roster` | external → master | **RELIABLE / TRANSIENT_LOCAL (latched)** | Declarative full-state roster. Master diffs against current onboarded set, calls `onboard_agv_batch` / `offboard_agv_batch` to converge |
+| `/<ns>/master_connection` | master → external | **RELIABLE / TRANSIENT_LOCAL (latched)** | Master liveness + readiness signal. State enum: `STARTING` → `READY` → `DEGRADED` → `READY` → `SHUTTING_DOWN`. 30 s heartbeat republish so subscribers can detect crashes by heartbeat-absence. Carries `master_id` (hostname-pid fallback), `master_version`, `broker_connected`, `onboarded_agv_count` |
+
+### Services (12)
+
+**Order dispatch**
+- `assign_order` — sync order dispatch. Handles both new orders and updates. Returns `AssignmentDecision` + diagnostic errors[]
+- `assign_instant_actions` — sync instant-action dispatch with mode-aware allowlist
+
+**Fleet membership** — both ship in single + batch variants. Both route through `master.onboard_agv_batch` / `offboard_agv_batch` internally
+- `onboard_agv` — single-AGV onboard (`AGVOnboardSpec` request → status enum)
+- `onboard_agv_batch` — batch (`AGVOnboardSpec[]` → partial-success `onboarded[]` + `failed[]`)
+- `offboard_agv` — single-AGV offboard (`AGVKey` request → status enum)
+- `offboard_agv_batch` — batch (`AGVKey[]` → `offboarded_count`)
+
+**Synchronous queries (operator diagnostics)**
+- `get_device_status` — coherent (single-mutex) snapshot of state + connection + factsheet for one AGV
+- `get_order_status` — atomic State + lifecycle bundle
+- `get_loaded_map` — currently-loaded topology map + per-AGV factsheet-alignment summary
+- `get_master_broker_status` — master's own MQTT-broker connection state + disconnect history
+
+**Operator recovery (mode cancellation)**
+- `resume_mode_cancelled_queue` — prepend the captured pre-mode-flip queue back into the live queue
+- `discard_mode_cancelled_queue` — drop the captured queue
 
 ## Features implemented
 
@@ -38,9 +78,18 @@ Services (10) under `/<ns>/`:
 - Mode-cancelled queue: capture on AUTOMATIC → non-AUTO flip; resume / discard on operator action
 
 **Fleet operations**
-- Onboard / offboard (idempotent), multi-AGV
+- Onboard / offboard (idempotent), single + batch variants on the same underlying batch API
 - Loaded map + factsheet alignment validator (vehicle-vs-map structural diff)
 - MQTT broker disconnect / reconnect tracking with observability snapshot
+
+**Async dispatch**
+- Wire-async order dispatch via the `assign_order_request` topic — non-blocking equivalent of the sync `assign_order` service
+- Caller-generated `assignment_id` UUID correlates `AssignmentResult` outcomes with `OrderStatus` lifecycle for the same order
+
+**Fleet roster + liveness**
+- `FleetRoster` subscriber (latched, full-state declarative); master diffs + converges by batch onboard/offboard
+- `MasterConnection` publisher (latched, 30 s heartbeat) signals master readiness + degradation
+- `master_id` defaults to `hostname-pid` for multi-master deployments without manual config
 
 ## Build
 
@@ -76,7 +125,7 @@ ros2 run vda5050_master_ros2 mock_fms --scenario happy-path
 ros2 run vda5050_master_ros2 example_master &
 ros2 service call /vda5050_master/onboard_agv \
     vda5050_master_ros2/srv/OnboardAGV \
-    "{manufacturer: 'Manufacturer', serial_number: 'S001'}"
+    "{agv: {manufacturer: 'Manufacturer', serial_number: 'S001'}}"
 ```
 - Expected response: `status: 0` (SUCCESS). A second call returns `status: 1` (ALREADY_ONBOARDED).
 - Try also: `get_loaded_map`, `get_master_broker_status`, `assign_order` (rejects pre-AGV with `decision: 2` AGV_OFFLINE).
@@ -92,7 +141,7 @@ ros2 run vda5050_master_ros2 mock_client --serial S001 --mfg Manufacturer    # T
   ORDER_DIR=$(ros2 pkg prefix vda5050_master_ros2)/share/vda5050_master_ros2/sample_data/orders
   ros2 service call /vda5050_master/onboard_agv \
       vda5050_master_ros2/srv/OnboardAGV \
-      "{manufacturer: 'Manufacturer', serial_number: 'S001'}"
+      "{agv: {manufacturer: 'Manufacturer', serial_number: 'S001'}}"
   ros2 service call /vda5050_master/assign_order \
       vda5050_master_ros2/srv/AssignOrder "$(cat $ORDER_DIR/happy_path.yaml)"
   ```
