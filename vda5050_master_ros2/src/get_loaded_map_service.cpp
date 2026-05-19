@@ -131,7 +131,7 @@ void GetLoadedMapService::handle_request(
   response->map_version = snap->info.map_version;
   response->map_status = map_status_to_str(snap->info.map_status);
   response->map_descriptor = snap->info.map_descriptor;
-  response->loaded_at = to_ros_time(snap->loaded_at);
+  response->loaded_at.push_back(to_ros_time(snap->loaded_at));
   response->node_count = static_cast<uint32_t>(snap->nodes.size());
   response->edge_count = static_cast<uint32_t>(snap->edges.size());
   response->source_path = snap->source_path;

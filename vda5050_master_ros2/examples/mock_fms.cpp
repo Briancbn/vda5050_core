@@ -390,7 +390,7 @@ bool scenario_happy_path(FmsContext& ctx)
       auto resp = call_service<GetDeviceStatus>(
         ctx.node, fmt::format("/{}/get_device_status", ctx.master_ns), req,
         ctx.timeout);
-      if (resp && resp->has_state && resp->has_connection)
+      if (resp && !resp->state.empty() && !resp->connection.empty())
       {
         seen = true;
       }
@@ -857,21 +857,25 @@ int run_repl(FmsContext& ctx)
         ctx.timeout);
       if (r)
       {
+        const bool has_state = !r->state.empty();
+        const bool has_connection = !r->connection.empty();
+        const bool has_factsheet = !r->factsheet.empty();
         fmt::print(
-          "  has_state={} has_connection={} has_factsheet={}\n", r->has_state,
-          r->has_connection, r->has_factsheet);
-        if (r->has_state)
+          "  has_state={} has_connection={} has_factsheet={}\n", has_state,
+          has_connection, has_factsheet);
+        if (has_state)
         {
+          const auto& s = r->state[0];
           fmt::print(
             "  state: order_id={} order_update_id={} "
             "last_node={} mode={} driving={}\n",
-            r->state.order_id, r->state.order_update_id,
-            r->state.last_node_id.empty() ? "-" : r->state.last_node_id,
-            r->state.operating_mode, r->state.driving);
+            s.order_id, s.order_update_id,
+            s.last_node_id.empty() ? "-" : s.last_node_id, s.operating_mode,
+            s.driving);
         }
-        if (r->has_connection)
+        if (has_connection)
         {
-          fmt::print("  conn: {}\n", r->connection.connection_state);
+          fmt::print("  conn: {}\n", r->connection[0].connection_state);
         }
       }
       continue;
@@ -919,10 +923,19 @@ int run_repl(FmsContext& ctx)
         req, ctx.timeout);
       if (r)
       {
-        fmt::print(
-          "  connected={} reconnect_count={} last_disconnect_at={}.{}\n",
-          static_cast<int>(r->connected), r->reconnect_count,
-          r->last_disconnect_at.sec, r->last_disconnect_at.nanosec);
+        if (r->last_disconnect_at.empty())
+        {
+          fmt::print(
+            "  connected={} reconnect_count={} last_disconnect_at=-\n",
+            static_cast<int>(r->connected), r->reconnect_count);
+        }
+        else
+        {
+          fmt::print(
+            "  connected={} reconnect_count={} last_disconnect_at={}.{}\n",
+            static_cast<int>(r->connected), r->reconnect_count,
+            r->last_disconnect_at[0].sec, r->last_disconnect_at[0].nanosec);
+        }
       }
       continue;
     }

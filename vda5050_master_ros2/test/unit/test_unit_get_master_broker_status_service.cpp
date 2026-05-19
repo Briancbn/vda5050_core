@@ -115,8 +115,7 @@ TEST_F(GetMasterBrokerStatusServiceTest, NeverConnectedReportsZeroes)
   ASSERT_NE(resp, nullptr) << "service call timed out";
   EXPECT_FALSE(resp->connected);
   EXPECT_EQ(resp->reconnect_count, 0u);
-  EXPECT_EQ(resp->last_disconnect_at.sec, 0);
-  EXPECT_EQ(resp->last_disconnect_at.nanosec, 0u);
+  EXPECT_TRUE(resp->last_disconnect_at.empty());
 }
 
 TEST_F(GetMasterBrokerStatusServiceTest, ConnectedSnapshotPropagates)
@@ -132,8 +131,7 @@ TEST_F(GetMasterBrokerStatusServiceTest, ConnectedSnapshotPropagates)
   ASSERT_NE(resp, nullptr) << "service call timed out";
   EXPECT_TRUE(resp->connected);
   EXPECT_EQ(resp->reconnect_count, 7u);
-  EXPECT_EQ(resp->last_disconnect_at.sec, 0);
-  EXPECT_EQ(resp->last_disconnect_at.nanosec, 0u);
+  EXPECT_TRUE(resp->last_disconnect_at.empty());
 }
 
 TEST_F(GetMasterBrokerStatusServiceTest, DisconnectedSnapshotIncludesTimestamp)
@@ -152,8 +150,9 @@ TEST_F(GetMasterBrokerStatusServiceTest, DisconnectedSnapshotIncludesTimestamp)
   ASSERT_NE(resp, nullptr) << "service call timed out";
   EXPECT_FALSE(resp->connected);
   EXPECT_EQ(resp->reconnect_count, 3u);
-  EXPECT_EQ(resp->last_disconnect_at.sec, 1700000000);
-  EXPECT_EQ(resp->last_disconnect_at.nanosec, 0u);
+  ASSERT_EQ(resp->last_disconnect_at.size(), 1u);
+  EXPECT_EQ(resp->last_disconnect_at[0].sec, 1700000000);
+  EXPECT_EQ(resp->last_disconnect_at[0].nanosec, 0u);
 }
 
 }  // namespace test

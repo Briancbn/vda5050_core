@@ -19,9 +19,11 @@
 bool connected
 
 # Wall-clock time at which the master last observed a broker
-# disconnect. Zero (epoch) if no disconnect has occurred since the
-# master process started.
-builtin_interfaces/Time last_disconnect_at
+# disconnect. Expressed as `Time[<=1]` (length 0 or 1): empty when
+# no disconnect has occurred since the master process started;
+# single element after the first disconnect event. Callers check
+# via `.empty()` and access via `[0]` when present.
+builtin_interfaces/Time[<=1] last_disconnect_at
 
 # Number of times the master's broker connection has been
 # (re)established since the process started. Initial successful

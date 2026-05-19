@@ -38,6 +38,8 @@ string serial_number
 OrderStatus order_status
 
 # Wall-clock time at which the master most recently received the
-# underlying State message from this AGV. Zero (epoch) when status
-# is not SUCCESS.
-builtin_interfaces/Time state_received_at
+# underlying State message from this AGV. Expressed as `Time[<=1]`
+# (length 0 or 1): empty when status is not SUCCESS or no State has
+# been received; single element otherwise. Callers check via
+# `.empty()` and access via `[0]` when present.
+builtin_interfaces/Time[<=1] state_received_at

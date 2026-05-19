@@ -86,9 +86,11 @@ void GetMasterBrokerStatusService::handle_request(
 
   response->connected = snap.connected;
   response->reconnect_count = snap.reconnect_count;
-  response->last_disconnect_at = snap.last_disconnect_at.has_value()
-                                   ? to_ros_time(*snap.last_disconnect_at)
-                                   : builtin_interfaces::msg::Time{};
+  if (snap.last_disconnect_at.has_value())
+  {
+    response->last_disconnect_at.push_back(
+      to_ros_time(*snap.last_disconnect_at));
+  }
 }
 
 }  // namespace vda5050_master_ros2

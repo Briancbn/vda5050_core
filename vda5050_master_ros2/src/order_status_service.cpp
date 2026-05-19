@@ -111,7 +111,8 @@ void OrderStatusService::handle_request(
     bundle, request->manufacturer, request->serial_number);
   if (bundle.state_received_at.has_value())
   {
-    response->state_received_at = to_ros_time(*bundle.state_received_at);
+    response->state_received_at.push_back(
+      to_ros_time(*bundle.state_received_at));
   }
 }
 

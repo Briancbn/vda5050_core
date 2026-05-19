@@ -28,9 +28,11 @@ string map_version
 string map_status        # "ENABLED" / "DISABLED"
 string map_descriptor
 
-# Wall-clock time at which the master finished loading the map. Zero
-# (epoch) when status == NO_MAP_LOADED.
-builtin_interfaces/Time loaded_at
+# Wall-clock time at which the master finished loading the map.
+# Expressed as `Time[<=1]` (length 0 or 1): empty when status ==
+# NO_MAP_LOADED; single element when a map is loaded. Callers check
+# via `.empty()` and access via `[0]` when present.
+builtin_interfaces/Time[<=1] loaded_at
 
 # Topology counts (post-parse).
 uint32 node_count

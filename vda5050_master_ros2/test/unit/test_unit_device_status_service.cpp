@@ -216,17 +216,20 @@ TEST_F(DeviceStatusServiceTest, ReturnsSuccessWhenAgvOnboardedWithFullData)
   EXPECT_EQ(resp->status, GetDeviceStatus::Response::SUCCESS);
   EXPECT_EQ(resp->manufacturer, kMfg);
   EXPECT_EQ(resp->serial_number, kSerial);
-  EXPECT_TRUE(resp->has_state);
-  EXPECT_TRUE(resp->has_connection);
-  EXPECT_TRUE(resp->has_factsheet);
-  EXPECT_EQ(resp->state.header.manufacturer, kMfg);
-  EXPECT_EQ(resp->state.header.serial_number, kSerial);
-  EXPECT_EQ(resp->connection.header.serial_number, kSerial);
-  EXPECT_EQ(resp->factsheet.header.serial_number, kSerial);
+  ASSERT_EQ(resp->state.size(), 1u);
+  ASSERT_EQ(resp->connection.size(), 1u);
+  ASSERT_EQ(resp->factsheet.size(), 1u);
+  EXPECT_EQ(resp->state[0].header.manufacturer, kMfg);
+  EXPECT_EQ(resp->state[0].header.serial_number, kSerial);
+  EXPECT_EQ(resp->connection[0].header.serial_number, kSerial);
+  EXPECT_EQ(resp->factsheet[0].header.serial_number, kSerial);
   // Timestamps populated (sec part > 0 since we used system_clock).
-  EXPECT_GT(resp->state_received_at.sec, 0);
-  EXPECT_GT(resp->connection_received_at.sec, 0);
-  EXPECT_GT(resp->factsheet_received_at.sec, 0);
+  ASSERT_EQ(resp->state_received_at.size(), 1u);
+  ASSERT_EQ(resp->connection_received_at.size(), 1u);
+  ASSERT_EQ(resp->factsheet_received_at.size(), 1u);
+  EXPECT_GT(resp->state_received_at[0].sec, 0);
+  EXPECT_GT(resp->connection_received_at[0].sec, 0);
+  EXPECT_GT(resp->factsheet_received_at[0].sec, 0);
 }
 
 TEST_F(DeviceStatusServiceTest, ReturnsAgvNotOnboardedForUnknownAgv)
@@ -239,9 +242,9 @@ TEST_F(DeviceStatusServiceTest, ReturnsAgvNotOnboardedForUnknownAgv)
   EXPECT_EQ(resp->status, GetDeviceStatus::Response::AGV_NOT_ONBOARDED);
   EXPECT_EQ(resp->manufacturer, kMfg);
   EXPECT_EQ(resp->serial_number, kSerial);
-  EXPECT_FALSE(resp->has_state);
-  EXPECT_FALSE(resp->has_connection);
-  EXPECT_FALSE(resp->has_factsheet);
+  EXPECT_TRUE(resp->state.empty());
+  EXPECT_TRUE(resp->connection.empty());
+  EXPECT_TRUE(resp->factsheet.empty());
 }
 
 TEST_F(DeviceStatusServiceTest, ReturnsAgvSilentWhenCacheEmpty)
@@ -254,9 +257,9 @@ TEST_F(DeviceStatusServiceTest, ReturnsAgvSilentWhenCacheEmpty)
 
   ASSERT_NE(resp, nullptr) << "service call timed out";
   EXPECT_EQ(resp->status, GetDeviceStatus::Response::AGV_SILENT);
-  EXPECT_FALSE(resp->has_state);
-  EXPECT_FALSE(resp->has_connection);
-  EXPECT_FALSE(resp->has_factsheet);
+  EXPECT_TRUE(resp->state.empty());
+  EXPECT_TRUE(resp->connection.empty());
+  EXPECT_TRUE(resp->factsheet.empty());
 }
 
 TEST_F(DeviceStatusServiceTest, ReturnsInvalidRequestForEmptyMfgOrSerial)
@@ -289,12 +292,11 @@ TEST_F(DeviceStatusServiceTest, ReturnsPartialDataWhenFactsheetMissing)
 
   ASSERT_NE(resp, nullptr);
   EXPECT_EQ(resp->status, GetDeviceStatus::Response::SUCCESS);
-  EXPECT_TRUE(resp->has_state);
-  EXPECT_TRUE(resp->has_connection);
-  EXPECT_FALSE(resp->has_factsheet);
-  // factsheet_received_at default-constructs to {sec=0, nanosec=0}.
-  EXPECT_EQ(resp->factsheet_received_at.sec, 0);
-  EXPECT_EQ(resp->factsheet_received_at.nanosec, 0u);
+  EXPECT_EQ(resp->state.size(), 1u);
+  EXPECT_EQ(resp->connection.size(), 1u);
+  EXPECT_TRUE(resp->factsheet.empty());
+  // No factsheet yet -> bounded-array timestamp also empty.
+  EXPECT_TRUE(resp->factsheet_received_at.empty());
 }
 
 // =============================================================================
@@ -313,14 +315,16 @@ TEST_F(DeviceStatusServiceTest, MultiAgvIsolation)
   auto resp_a = call(svc.service_name(), kMfg, kSerial);
   ASSERT_NE(resp_a, nullptr);
   EXPECT_EQ(resp_a->status, GetDeviceStatus::Response::SUCCESS);
-  EXPECT_EQ(resp_a->state.header.manufacturer, kMfg);
-  EXPECT_EQ(resp_a->state.header.serial_number, kSerial);
+  ASSERT_EQ(resp_a->state.size(), 1u);
+  EXPECT_EQ(resp_a->state[0].header.manufacturer, kMfg);
+  EXPECT_EQ(resp_a->state[0].header.serial_number, kSerial);
 
   auto resp_b = call(svc.service_name(), kOtherMfg, kOtherSerial);
   ASSERT_NE(resp_b, nullptr);
   EXPECT_EQ(resp_b->status, GetDeviceStatus::Response::SUCCESS);
-  EXPECT_EQ(resp_b->state.header.manufacturer, kOtherMfg);
-  EXPECT_EQ(resp_b->state.header.serial_number, kOtherSerial);
+  ASSERT_EQ(resp_b->state.size(), 1u);
+  EXPECT_EQ(resp_b->state[0].header.manufacturer, kOtherMfg);
+  EXPECT_EQ(resp_b->state[0].header.serial_number, kOtherSerial);
 }
 
 TEST_F(DeviceStatusServiceTest, ConcurrentClientsReturnIndependentResponses)
@@ -352,8 +356,8 @@ TEST_F(DeviceStatusServiceTest, ConcurrentClientsReturnIndependentResponses)
   auto r2 = fut2.get();
   EXPECT_EQ(r1->status, GetDeviceStatus::Response::SUCCESS);
   EXPECT_EQ(r2->status, GetDeviceStatus::Response::SUCCESS);
-  EXPECT_TRUE(r1->has_state);
-  EXPECT_TRUE(r2->has_state);
+  EXPECT_EQ(r1->state.size(), 1u);
+  EXPECT_EQ(r2->state.size(), 1u);
 }
 
 }  // namespace test

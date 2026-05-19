@@ -84,12 +84,12 @@ void DeviceStatusService::handle_request(
   const std::shared_ptr<GetDeviceStatus::Request> request,
   std::shared_ptr<GetDeviceStatus::Response> response)
 {
-  // Always echo the request key so async batching clients can correlate.
+  // Echo the request key so async batching clients can correlate.
   response->manufacturer = request->manufacturer;
   response->serial_number = request->serial_number;
-  response->has_state = false;
-  response->has_connection = false;
-  response->has_factsheet = false;
+  response->state.clear();
+  response->connection.clear();
+  response->factsheet.clear();
 
   if (request->manufacturer.empty() || request->serial_number.empty())
   {
@@ -117,38 +117,40 @@ void DeviceStatusService::handle_request(
 
   if (snap.state.has_value())
   {
-    response->state = internal::to_msg<
-      vda5050_core::types::State, vda5050_interfaces::msg::State>(*snap.state);
-    response->has_state = true;
+    response->state.push_back(
+      internal::to_msg<
+        vda5050_core::types::State, vda5050_interfaces::msg::State>(
+        *snap.state));
     if (snap.state_received_at.has_value())
     {
-      response->state_received_at = to_ros_time(*snap.state_received_at);
+      response->state_received_at.push_back(
+        to_ros_time(*snap.state_received_at));
     }
   }
 
   if (snap.connection.has_value())
   {
-    response->connection = internal::to_msg<
-      vda5050_core::types::Connection, vda5050_interfaces::msg::Connection>(
-      *snap.connection);
-    response->has_connection = true;
+    response->connection.push_back(
+      internal::to_msg<
+        vda5050_core::types::Connection, vda5050_interfaces::msg::Connection>(
+        *snap.connection));
     if (snap.connection_received_at.has_value())
     {
-      response->connection_received_at =
-        to_ros_time(*snap.connection_received_at);
+      response->connection_received_at.push_back(
+        to_ros_time(*snap.connection_received_at));
     }
   }
 
   if (snap.factsheet.has_value())
   {
-    response->factsheet = internal::to_msg<
-      vda5050_core::types::Factsheet, vda5050_interfaces::msg::Factsheet>(
-      *snap.factsheet);
-    response->has_factsheet = true;
+    response->factsheet.push_back(
+      internal::to_msg<
+        vda5050_core::types::Factsheet, vda5050_interfaces::msg::Factsheet>(
+        *snap.factsheet));
     if (snap.factsheet_received_at.has_value())
     {
-      response->factsheet_received_at =
-        to_ros_time(*snap.factsheet_received_at);
+      response->factsheet_received_at.push_back(
+        to_ros_time(*snap.factsheet_received_at));
     }
   }
 }

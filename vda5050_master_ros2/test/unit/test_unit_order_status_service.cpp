@@ -198,7 +198,8 @@ TEST_F(OrderStatusServiceTest, ReturnsSuccessWhenAgvOnboardedWithState)
   EXPECT_EQ(resp->order_status.order_id, "ORD1");
   EXPECT_EQ(resp->order_status.last_node_id, "N1");
   EXPECT_EQ(resp->order_status.last_node_sequence_id, 1u);
-  EXPECT_GT(resp->state_received_at.sec, 0);
+  ASSERT_EQ(resp->state_received_at.size(), 1u);
+  EXPECT_GT(resp->state_received_at[0].sec, 0);
 }
 
 TEST_F(OrderStatusServiceTest, ReturnsAgvNotOnboardedForUnknownAgv)

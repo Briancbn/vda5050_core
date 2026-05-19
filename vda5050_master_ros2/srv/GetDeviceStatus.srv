@@ -12,8 +12,10 @@ string serial_number
 ---
 # Status enum.
 #
-# SUCCESS: at least one of state/connection has been observed; payloads
-#   carry the latest cached values, gated by the has_* flags below.
+# SUCCESS: at least one of state/connection has been observed; the
+#   corresponding optional payloads below carry the latest cached
+#   values. An empty factsheet array alone is normal — the Factsheet
+#   is request/response, not heartbeat — and does NOT block SUCCESS.
 # INVALID_REQUEST: manufacturer or serial_number is empty in the request.
 # AGV_NOT_ONBOARDED: no AGV with that {manufacturer, serial_number} is in
 #   the master's onboarded list.
@@ -30,22 +32,19 @@ uint8 status
 string manufacturer
 string serial_number
 
-# Optional payloads. ROS .srv has no native optional, so each payload
-# is gated by a bool flag. has_factsheet=false alone is normal — the
-# Factsheet is request/response, not heartbeat — and does NOT block
-# SUCCESS.
-bool has_state
-vda5050_interfaces/State state
-
-bool has_connection
-vda5050_interfaces/Connection connection
-
-bool has_factsheet
-vda5050_interfaces/Factsheet factsheet
+# Optional payloads. Expressed as bounded arrays of length 0 or 1:
+# empty = absent, single element = present. This is the ROS 2 IDL
+# idiom for optional fields. Callers check via `.empty()` and access
+# via `[0]` when populated.
+vda5050_interfaces/State[<=1] state
+vda5050_interfaces/Connection[<=1] connection
+vda5050_interfaces/Factsheet[<=1] factsheet
 
 # Master-side cache freshness. Each is the wall-clock time at which the
 # master most recently received the corresponding payload from the AGV.
-# Zero (epoch) when the corresponding has_* flag is false.
-builtin_interfaces/Time state_received_at
-builtin_interfaces/Time connection_received_at
-builtin_interfaces/Time factsheet_received_at
+# Expressed as `Time[<=1]` (length 0 or 1): empty when the matching
+# payload above is empty; single element when populated. Callers check
+# via `.empty()` and access via `[0]` when present.
+builtin_interfaces/Time[<=1] state_received_at
+builtin_interfaces/Time[<=1] connection_received_at
+builtin_interfaces/Time[<=1] factsheet_received_at
