@@ -44,6 +44,9 @@ VDA5050MasterROS2::VDA5050MasterROS2(
     [this](const std::string& mfg, const std::string& serial) {
       return this->get_agv(mfg, serial);
     },
+    [this](const std::string& mfg, const std::string& serial) {
+      return this->get_active_assignment_id(mfg, serial);
+    },
     topic_namespace)),
   order_send_service_(std::make_unique<OrderSendService>(
     ros2_node,
@@ -112,7 +115,7 @@ VDA5050MasterROS2::VDA5050MasterROS2(
       topic_namespace)),
   get_master_broker_status_service_(
     std::make_unique<GetMasterBrokerStatusService>(
-      std::move(ros2_node),
+      ros2_node,
       [this]() {
         const auto snap = this->get_broker_status();
         GetMasterBrokerStatusService::StatusSnapshot out;
@@ -121,7 +124,25 @@ VDA5050MasterROS2::VDA5050MasterROS2(
         out.reconnect_count = snap.reconnect_count;
         return out;
       },
-      topic_namespace))
+      topic_namespace)),
+  assignment_result_publisher_(
+    std::make_shared<AssignmentResultPublisher>(ros2_node, topic_namespace)),
+  assign_order_request_subscriber_(
+    std::make_unique<AssignOrderRequestSubscriber>(
+      std::move(ros2_node),
+      [this](
+        const std::string& mfg, const std::string& serial,
+        const vda5050_core::types::Order& order) {
+        return this->assign_order(mfg, serial, order);
+      },
+      [this](
+        const std::string& mfg, const std::string& serial,
+        const std::string& assignment_id, const std::string& order_id,
+        std::uint32_t order_update_id) {
+        this->record_assignment(
+          mfg, serial, assignment_id, order_id, order_update_id);
+      },
+      assignment_result_publisher_, topic_namespace))
 {
 }
 
@@ -146,7 +167,8 @@ void VDA5050MasterROS2::on_state(
   if (auto agv = get_agv(mfg, serial))
   {
     auto bundle = agv->get_order_status_bundle();
-    auto msg = build_order_status_msg(bundle, mfg, serial);
+    auto msg = build_order_status_msg(
+      bundle, mfg, serial, get_active_assignment_id(mfg, serial));
     order_status_publisher_->publish_order_status(mfg, serial, msg);
     device_status_->publish_device_status(
       mfg, serial, agv->get_status_snapshot());

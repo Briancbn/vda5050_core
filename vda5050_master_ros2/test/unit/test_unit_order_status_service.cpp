@@ -167,7 +167,7 @@ TEST_F(OrderStatusServiceTest, ServiceNameFollowsConvention)
 
 TEST_F(OrderStatusServiceTest, CustomNamespaceAppliesToServiceName)
 {
-  OrderStatusService svc(node_, make_lookup(), "my_master");
+  OrderStatusService svc(node_, make_lookup(), nullptr, "my_master");
   EXPECT_EQ(svc.service_name(), "/my_master/get_order_status");
 }
 

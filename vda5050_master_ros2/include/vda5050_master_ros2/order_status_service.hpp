@@ -66,15 +66,26 @@ public:
   using AgvLookup = std::function<std::shared_ptr<vda5050_core::master::AGV>(
     const std::string& manufacturer, const std::string& serial_number)>;
 
+  /// Active-assignment lookup. Returns the master's recorded
+  /// assignment_id for the AGV — or empty string when none. Used to
+  /// populate the correlation field in the OrderStatus payload.
+  using AssignmentLookup = std::function<std::string(
+    const std::string& manufacturer, const std::string& serial_number)>;
+
   /// \brief Construct.
-  /// \param node            ROS 2 node hosting the service. Must outlive
-  ///                        this object.
-  /// \param agv_lookup      Lookup callable. Typically wraps
-  ///                        VDA5050Master::get_agv(...).
-  /// \param topic_namespace Prefix for the service name. Defaults to
-  ///                        "vda5050_master".
+  /// \param node              ROS 2 node hosting the service. Must
+  ///                          outlive this object.
+  /// \param agv_lookup        Lookup callable. Typically wraps
+  ///                          VDA5050Master::get_agv(...).
+  /// \param assignment_lookup Active-assignment lookup. Typically wraps
+  ///                          VDA5050Master::get_active_assignment_id.
+  ///                          May be null — service will treat all
+  ///                          assignments as empty.
+  /// \param topic_namespace   Prefix for the service name. Defaults to
+  ///                          "vda5050_master".
   OrderStatusService(
     rclcpp::Node::SharedPtr node, AgvLookup agv_lookup,
+    AssignmentLookup assignment_lookup = nullptr,
     const std::string& topic_namespace = "vda5050_master");
 
   ~OrderStatusService() = default;
@@ -100,6 +111,7 @@ private:
 
   rclcpp::Node::SharedPtr node_;
   AgvLookup agv_lookup_;
+  AssignmentLookup assignment_lookup_;
   std::string service_name_;
   rclcpp::Service<GetOrderStatus>::SharedPtr service_;
 };

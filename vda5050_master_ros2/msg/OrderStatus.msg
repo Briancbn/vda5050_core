@@ -14,6 +14,16 @@
 string manufacturer
 string serial_number
 
+# Cross-channel correlation key. UUID provided by the caller in the
+# original AssignOrderRequest that produced this order. Same value
+# echoed in the corresponding AssignmentResult and in every OrderStatus
+# publish for the lifetime of the assignment (including stitched
+# updates that share the order lifecycle). Empty when the master has
+# no active assignment for this AGV (e.g. PHASE_NO_ORDER, or the
+# order arrived via the synchronous AssignOrder service which is not
+# correlation-aware in V0).
+string assignment_id
+
 # Master wall-clock time when this snapshot was built.
 builtin_interfaces/Time stamp
 

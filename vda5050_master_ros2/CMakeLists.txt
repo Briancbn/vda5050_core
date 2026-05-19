@@ -25,6 +25,8 @@ include(GNUInstallDirs)
 set(msg_files
   msg/AgvAlignment.msg
   msg/AgvAlignmentFinding.msg
+  msg/AssignOrderRequest.msg
+  msg/AssignmentResult.msg
   msg/DeviceStatus.msg
   msg/OrderStatus.msg
 )
@@ -185,6 +187,10 @@ if(BUILD_TESTING)
                                                  test/unit/test_unit_discard_mode_cancelled_queue_service.cpp)
   _add_ros2_test(test_get_master_broker_status_service
                                                  test/unit/test_unit_get_master_broker_status_service.cpp)
+  _add_ros2_test(test_assignment_result_publisher
+                                                 test/unit/test_unit_assignment_result_publisher.cpp)
+  _add_ros2_test(test_assign_order_request_subscriber
+                                                 test/unit/test_unit_assign_order_request_subscriber.cpp)
 
   # Pure function — no DDS env needed.
   ament_add_gmock(test_order_status_builder test/unit/test_unit_order_status_builder.cpp)

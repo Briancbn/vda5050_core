@@ -79,13 +79,15 @@ uint8_t derive_phase(
 
 vda5050_master_ros2::msg::OrderStatus build_order_status_msg(
   const vda5050_core::master::AGV::OrderStatusBundle& bundle,
-  const std::string& manufacturer, const std::string& serial_number)
+  const std::string& manufacturer, const std::string& serial_number,
+  const std::string& assignment_id)
 {
   using OrderStatus = vda5050_master_ros2::msg::OrderStatus;
 
   OrderStatus msg;
   msg.manufacturer = manufacturer;
   msg.serial_number = serial_number;
+  msg.assignment_id = assignment_id;
   msg.stamp = now_as_ros_time();
 
   const vda5050_core::types::State* state_ptr =

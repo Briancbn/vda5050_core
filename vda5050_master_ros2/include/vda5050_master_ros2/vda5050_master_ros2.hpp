@@ -26,6 +26,8 @@
 #include "rclcpp/rclcpp.hpp"
 #include "vda5050_core/master/master.hpp"
 #include "vda5050_core/transport/mqtt_client_interface.hpp"
+#include "vda5050_master_ros2/assign_order_request_subscriber.hpp"
+#include "vda5050_master_ros2/assignment_result_publisher.hpp"
 #include "vda5050_master_ros2/device_status_publisher.hpp"
 #include "vda5050_master_ros2/device_status_service.hpp"
 #include "vda5050_master_ros2/discard_mode_cancelled_queue_service.hpp"
@@ -225,6 +227,11 @@ private:
     discard_mode_cancelled_queue_service_;
   std::unique_ptr<GetMasterBrokerStatusService>
     get_master_broker_status_service_;
+  // Async-dispatch (MAPF / RES) — created publisher-first so the
+  // subscriber can capture a shared reference at construction time.
+  std::shared_ptr<AssignmentResultPublisher> assignment_result_publisher_;
+  std::unique_ptr<AssignOrderRequestSubscriber>
+    assign_order_request_subscriber_;
 };
 
 }  // namespace vda5050_master_ros2

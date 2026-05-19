@@ -260,6 +260,45 @@ public:
     const std::string& manufacturer, const std::string& serial_number,
     const vda5050_core::types::Order& order);
 
+  // ============================================================================
+  // Assignment correlation (async dispatch — Task #57 wire-async equivalent
+  // of assign_order). The async ROS 2 layer
+  // (AssignOrderRequestSubscriber / AssignmentResultPublisher) carries a
+  // caller-generated UUID through the dispatch path so callers can match
+  // an AssignmentResult to its OrderStatus stream by `assignment_id`.
+  // These methods give the ROS 2 layer somewhere to stash that UUID
+  // alongside the lifecycle so the OrderStatus builder can echo it back.
+  //
+  // V0 semantics: at most one active assignment per (mfg, serial). A
+  // second record_assignment for the same AGV overwrites the previous
+  // entry. Real dedup / multi-pending support is post-V0.
+  //
+  // Threading: protected by `assignments_mutex_`. The map is small
+  // (one entry per AGV) and only accessed from the wire-async dispatch
+  // path; never acquired together with `agv_mutex_`, so there is no
+  // ordering constraint.
+  // ============================================================================
+
+  /// \brief Record an assignment_id alongside its order_id / update_id
+  ///        for an AGV. Called by AssignOrderRequestSubscriber after
+  ///        VDA5050Master::assign_order returns ASSIGNED or QUEUED.
+  ///        Empty `assignment_id` is treated as clear.
+  void record_assignment(
+    const std::string& manufacturer, const std::string& serial_number,
+    const std::string& assignment_id, const std::string& order_id,
+    std::uint32_t order_update_id);
+
+  /// \brief Look up the active assignment_id for an AGV. Returns empty
+  ///        string if no active assignment is recorded — used by the
+  ///        OrderStatus builder to populate the correlation field.
+  std::string get_active_assignment_id(
+    const std::string& manufacturer, const std::string& serial_number) const;
+
+  /// \brief Clear the active assignment_id mapping for an AGV. Called
+  ///        when the order lifecycle ends or when offboarding.
+  void clear_assignment(
+    const std::string& manufacturer, const std::string& serial_number);
+
   /**
    * @brief Publish instant actions to a specific AGV
    * @param manufacturer Manufacturer name
@@ -694,6 +733,20 @@ private:
   std::optional<std::chrono::system_clock::time_point>
     broker_last_disconnect_at_;
   std::uint64_t broker_reconnect_count_ = 0;
+
+  // Active assignment_id per onboarded AGV (async dispatch
+  // correlation). One entry per (mfg, serial); a second record
+  // overwrites. Map key is the same `{mfg}/{serial}` id format used
+  // by agvs_. See record_assignment / get_active_assignment_id /
+  // clear_assignment for the contract.
+  struct ActiveAssignment
+  {
+    std::string assignment_id;
+    std::string order_id;
+    std::uint32_t order_update_id = 0;
+  };
+  mutable std::mutex assignments_mutex_;
+  std::unordered_map<std::string, ActiveAssignment> active_assignments_;
 
   // Internal handlers for the MQTT transport's connection-state
   // callbacks (Task #70). Update broker_* state under the mutex, then

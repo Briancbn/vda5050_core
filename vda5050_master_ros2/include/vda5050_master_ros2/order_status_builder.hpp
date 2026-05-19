@@ -50,9 +50,16 @@ namespace vda5050_master_ros2 {
 //
 // **Stamp**: set to `std::chrono::system_clock::now()` at the call site.
 
+/// \param assignment_id   Correlation UUID echoed into the message's
+///                        assignment_id field. Empty when the master
+///                        has no active assignment for this AGV — e.g.
+///                        PHASE_NO_ORDER, or the order arrived via the
+///                        synchronous AssignOrder service (not
+///                        correlation-aware in V0).
 vda5050_master_ros2::msg::OrderStatus build_order_status_msg(
   const vda5050_core::master::AGV::OrderStatusBundle& bundle,
-  const std::string& manufacturer, const std::string& serial_number);
+  const std::string& manufacturer, const std::string& serial_number,
+  const std::string& assignment_id = "");
 
 }  // namespace vda5050_master_ros2
 

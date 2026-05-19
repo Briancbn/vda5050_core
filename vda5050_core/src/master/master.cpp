@@ -205,7 +205,48 @@ void VDA5050Master::offboard_agv(
   // before the AGV instance is gone.
   agv->stop();
 
+  // Drop any active assignment_id correlation — the AGV is gone, so
+  // any in-flight async dispatch result for it would be meaningless.
+  {
+    std::lock_guard<std::mutex> lock(assignments_mutex_);
+    active_assignments_.erase(agv_id);
+  }
+
   VDA5050_INFO("[VDA5050Master] Offboarded AGV: {}", agv_id);
+}
+
+void VDA5050Master::record_assignment(
+  const std::string& manufacturer, const std::string& serial_number,
+  const std::string& assignment_id, const std::string& order_id,
+  std::uint32_t order_update_id)
+{
+  const std::string agv_id = manufacturer + "/" + serial_number;
+  std::lock_guard<std::mutex> lock(assignments_mutex_);
+  if (assignment_id.empty())
+  {
+    active_assignments_.erase(agv_id);
+    return;
+  }
+  active_assignments_[agv_id] =
+    ActiveAssignment{assignment_id, order_id, order_update_id};
+}
+
+std::string VDA5050Master::get_active_assignment_id(
+  const std::string& manufacturer, const std::string& serial_number) const
+{
+  const std::string agv_id = manufacturer + "/" + serial_number;
+  std::lock_guard<std::mutex> lock(assignments_mutex_);
+  auto it = active_assignments_.find(agv_id);
+  if (it == active_assignments_.end()) return {};
+  return it->second.assignment_id;
+}
+
+void VDA5050Master::clear_assignment(
+  const std::string& manufacturer, const std::string& serial_number)
+{
+  const std::string agv_id = manufacturer + "/" + serial_number;
+  std::lock_guard<std::mutex> lock(assignments_mutex_);
+  active_assignments_.erase(agv_id);
 }
 
 bool VDA5050Master::is_agv_onboarded(

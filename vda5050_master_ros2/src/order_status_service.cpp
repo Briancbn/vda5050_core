@@ -60,9 +60,10 @@ std::string OrderStatusService::make_service_name(
 
 OrderStatusService::OrderStatusService(
   rclcpp::Node::SharedPtr node, AgvLookup agv_lookup,
-  const std::string& topic_namespace)
+  AssignmentLookup assignment_lookup, const std::string& topic_namespace)
 : node_(std::move(node)),
   agv_lookup_(std::move(agv_lookup)),
+  assignment_lookup_(std::move(assignment_lookup)),
   service_name_(make_service_name(topic_namespace))
 {
   service_ = node_->create_service<GetOrderStatus>(
@@ -107,8 +108,12 @@ void OrderStatusService::handle_request(
   }
 
   response->status = GetOrderStatus::Response::SUCCESS;
+  const std::string assignment_id =
+    assignment_lookup_
+      ? assignment_lookup_(request->manufacturer, request->serial_number)
+      : std::string{};
   response->order_status = build_order_status_msg(
-    bundle, request->manufacturer, request->serial_number);
+    bundle, request->manufacturer, request->serial_number, assignment_id);
   if (bundle.state_received_at.has_value())
   {
     response->state_received_at.push_back(
