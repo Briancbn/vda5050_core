@@ -25,11 +25,12 @@ include(GNUInstallDirs)
 set(msg_files
   msg/AgvAlignment.msg
   msg/AgvAlignmentFinding.msg
+  msg/AGVKey.msg
+  msg/AGVOnboardSpec.msg
   msg/AssignOrderRequest.msg
   msg/AssignmentResult.msg
   msg/DeviceStatus.msg
   msg/FleetRoster.msg
-  msg/FleetRosterEntry.msg
   msg/MasterConnection.msg
   msg/OrderStatus.msg
 )
@@ -42,7 +43,9 @@ set(srv_files
   srv/GetMasterBrokerStatus.srv
   srv/GetOrderStatus.srv
   srv/OffboardAGV.srv
+  srv/OffboardAGVBatch.srv
   srv/OnboardAGV.srv
+  srv/OnboardAGVBatch.srv
   srv/ResumeModeCancelledQueue.srv
 )
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -182,7 +185,9 @@ if(BUILD_TESTING)
   _add_ros2_test(test_order_send_service         test/unit/test_unit_order_send_service.cpp)
   _add_ros2_test(test_instant_actions_send_service test/unit/test_unit_instant_actions_send_service.cpp)
   _add_ros2_test(test_onboard_agv_service        test/unit/test_unit_onboard_agv_service.cpp)
+  _add_ros2_test(test_onboard_agv_batch_service  test/unit/test_unit_onboard_agv_batch_service.cpp)
   _add_ros2_test(test_offboard_agv_service       test/unit/test_unit_offboard_agv_service.cpp)
+  _add_ros2_test(test_offboard_agv_batch_service test/unit/test_unit_offboard_agv_batch_service.cpp)
   _add_ros2_test(test_get_loaded_map_service     test/unit/test_unit_get_loaded_map_service.cpp)
   _add_ros2_test(test_resume_mode_cancelled_queue_service
                                                  test/unit/test_unit_resume_mode_cancelled_queue_service.cpp)

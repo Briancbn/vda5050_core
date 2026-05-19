@@ -67,19 +67,19 @@ FleetRosterSubscriber::FleetRosterSubscriber(
 void FleetRosterSubscriber::on_roster(
   vda5050_master_ros2::msg::FleetRoster::SharedPtr msg)
 {
-  using AgvKey = std::pair<std::string, std::string>;
+  using AGVKey = std::pair<std::string, std::string>;
   using vda5050_core::master::VDA5050Master;
 
   VDA5050_INFO(
     "[FleetRosterSubscriber] received roster_id={} from {} with {} AGVs",
     msg->roster_id, msg->publisher_id, msg->agvs.size());
 
-  std::set<AgvKey> desired_set;
+  std::set<AGVKey> desired_set;
   std::vector<VDA5050Master::OnboardSpec> add_specs;
 
   auto current_pairs =
-    onboarded_snapshot_ ? onboarded_snapshot_() : std::vector<AgvKey>{};
-  std::set<AgvKey> current_set(current_pairs.begin(), current_pairs.end());
+    onboarded_snapshot_ ? onboarded_snapshot_() : std::vector<AGVKey>{};
+  std::set<AGVKey> current_set(current_pairs.begin(), current_pairs.end());
 
   for (const auto& entry : msg->agvs)
   {
@@ -88,14 +88,14 @@ void FleetRosterSubscriber::on_roster(
       VDA5050_WARN("[FleetRosterSubscriber] skipping entry with empty mfg/sn");
       continue;
     }
-    AgvKey key{entry.manufacturer, entry.serial_number};
+    AGVKey key{entry.manufacturer, entry.serial_number};
     desired_set.insert(key);
     if (current_set.find(key) == current_set.end())
     {
       VDA5050Master::OnboardSpec spec;
       spec.manufacturer = entry.manufacturer;
       spec.serial_number = entry.serial_number;
-      // FleetRosterEntry treats max_queue_size==0 as "use master default".
+      // AGVOnboardSpec treats max_queue_size==0 as "use master default".
       if (entry.max_queue_size != 0)
       {
         spec.max_queue_size = entry.max_queue_size;
@@ -105,7 +105,7 @@ void FleetRosterSubscriber::on_roster(
     }
   }
 
-  std::vector<AgvKey> remove_keys;
+  std::vector<AGVKey> remove_keys;
   for (const auto& key : current_set)
   {
     if (desired_set.find(key) == desired_set.end())
@@ -122,7 +122,8 @@ void FleetRosterSubscriber::on_roster(
     auto result = onboard_batcher_(add_specs);
     VDA5050_INFO(
       "[FleetRosterSubscriber] batch onboard: {} added, {} skipped, {} failed",
-      result.onboarded_count, result.skipped_already_onboarded, result.failed);
+      result.onboarded.size(), result.skipped_already_onboarded.size(),
+      result.failed.size());
   }
   if (!remove_keys.empty() && offboard_batcher_)
   {

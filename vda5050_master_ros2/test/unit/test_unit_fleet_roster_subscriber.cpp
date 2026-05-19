@@ -32,8 +32,8 @@
 #include "rclcpp/rclcpp.hpp"
 #include "vda5050_core/master/master.hpp"
 #include "vda5050_master_ros2/fleet_roster_subscriber.hpp"
+#include "vda5050_master_ros2/msg/agv_onboard_spec.hpp"
 #include "vda5050_master_ros2/msg/fleet_roster.hpp"
-#include "vda5050_master_ros2/msg/fleet_roster_entry.hpp"
 
 namespace vda5050_master_ros2 {
 namespace test {
@@ -85,12 +85,12 @@ struct MasterStub
           auto key = std::make_pair(s.manufacturer, s.serial_number);
           if (onboarded.count(key))
           {
-            r.skipped_already_onboarded++;
+            r.skipped_already_onboarded.push_back(s);
           }
           else
           {
             onboarded.insert(key);
-            r.onboarded_count++;
+            r.onboarded.push_back(s);
           }
         }
         return r;
@@ -113,10 +113,10 @@ struct MasterStub
   }
 };
 
-vda5050_master_ros2::msg::FleetRosterEntry mk_entry(
+vda5050_master_ros2::msg::AGVOnboardSpec mk_entry(
   const std::string& mfg, const std::string& sn)
 {
-  vda5050_master_ros2::msg::FleetRosterEntry e;
+  vda5050_master_ros2::msg::AGVOnboardSpec e;
   e.manufacturer = mfg;
   e.serial_number = sn;
   e.max_queue_size = 0;
@@ -323,13 +323,13 @@ TEST_F(FleetRosterSubscriberTest, RespectsPerEntryQueueConfig)
   auto pub = make_latched_pub(sub.topic_name());
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-  vda5050_master_ros2::msg::FleetRosterEntry e1;
+  vda5050_master_ros2::msg::AGVOnboardSpec e1;
   e1.manufacturer = "ACME";
   e1.serial_number = "AGV01";
   e1.max_queue_size = 0;  // master default
   e1.drop_oldest = false;
 
-  vda5050_master_ros2::msg::FleetRosterEntry e2;
+  vda5050_master_ros2::msg::AGVOnboardSpec e2;
   e2.manufacturer = "ACME";
   e2.serial_number = "AGV02";
   e2.max_queue_size = 50;

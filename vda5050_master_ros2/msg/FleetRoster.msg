@@ -42,4 +42,4 @@ string publisher_id
 
 # The complete current roster. Empty array means "no AGVs should be
 # onboarded" — the master will offboard everything it currently tracks.
-FleetRosterEntry[] agvs
+AGVOnboardSpec[] agvs

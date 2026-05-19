@@ -276,14 +276,18 @@ public:
     bool drop_oldest = true;
   };
 
-  /// Summary of a batch call. Never throws; per-entry failures land
-  /// in `failed` / `failed_keys`.
+  /// Summary of a batch call. Never throws; per-entry outcomes are
+  /// classified into three lists so callers can report which AGV
+  /// landed in which bucket. Counts are `.size()` of each list.
   struct BatchOnboardResult
   {
-    std::size_t onboarded_count = 0;
-    std::size_t skipped_already_onboarded = 0;
-    std::size_t failed = 0;
-    std::vector<std::pair<std::string, std::string>> failed_keys;
+    /// Entries newly onboarded by this call.
+    std::vector<OnboardSpec> onboarded;
+    /// Entries whose {mfg, serial} key was already in the master's
+    /// onboarded set. Idempotent no-op.
+    std::vector<OnboardSpec> skipped_already_onboarded;
+    /// Entries that failed validation (empty mfg or serial today).
+    std::vector<OnboardSpec> failed;
   };
 
   /// Onboard a batch of AGVs under a single `agv_mutex_` acquisition.

@@ -90,27 +90,24 @@ VDA5050MasterROS2::VDA5050MasterROS2(
     topic_namespace)),
   onboard_agv_service_(std::make_unique<OnboardAGVService>(
     ros2_node,
-    [this](
-      const std::string& mfg, const std::string& serial, std::size_t qs,
-      bool drop) -> OnboardAGVService::OnboardOutcome {
-      if (this->is_agv_onboarded(mfg, serial))
-      {
-        return {OnboardAGVService::OnboardOutcome::ALREADY_ONBOARDED};
-      }
-      this->onboard_agv(mfg, serial, qs, drop);
-      return {OnboardAGVService::OnboardOutcome::ONBOARDED};
-    },
+    [this](const std::vector<vda5050_core::master::VDA5050Master::OnboardSpec>&
+             specs) { return this->onboard_agv_batch(specs); },
+    topic_namespace)),
+  onboard_agv_batch_service_(std::make_unique<OnboardAGVBatchService>(
+    ros2_node,
+    [this](const std::vector<vda5050_core::master::VDA5050Master::OnboardSpec>&
+             specs) { return this->onboard_agv_batch(specs); },
     topic_namespace)),
   offboard_agv_service_(std::make_unique<OffboardAGVService>(
     ros2_node,
-    [this](const std::string& mfg, const std::string& serial)
-      -> OffboardAGVService::OffboardOutcome {
-      if (!this->is_agv_onboarded(mfg, serial))
-      {
-        return {OffboardAGVService::OffboardOutcome::NOT_ONBOARDED};
-      }
-      this->offboard_agv(mfg, serial);
-      return {OffboardAGVService::OffboardOutcome::OFFBOARDED};
+    [this](const std::vector<std::pair<std::string, std::string>>& keys) {
+      return this->offboard_agv_batch(keys);
+    },
+    topic_namespace)),
+  offboard_agv_batch_service_(std::make_unique<OffboardAGVBatchService>(
+    ros2_node,
+    [this](const std::vector<std::pair<std::string, std::string>>& keys) {
+      return this->offboard_agv_batch(keys);
     },
     topic_namespace)),
   get_loaded_map_service_(std::make_unique<GetLoadedMapService>(

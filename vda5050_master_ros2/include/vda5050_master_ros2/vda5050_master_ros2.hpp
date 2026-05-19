@@ -36,7 +36,9 @@
 #include "vda5050_master_ros2/get_master_broker_status_service.hpp"
 #include "vda5050_master_ros2/instant_actions_send_service.hpp"
 #include "vda5050_master_ros2/master_connection_publisher.hpp"
+#include "vda5050_master_ros2/offboard_agv_batch_service.hpp"
 #include "vda5050_master_ros2/offboard_agv_service.hpp"
+#include "vda5050_master_ros2/onboard_agv_batch_service.hpp"
 #include "vda5050_master_ros2/onboard_agv_service.hpp"
 #include "vda5050_master_ros2/order_send_service.hpp"
 #include "vda5050_master_ros2/order_status_publisher.hpp"
@@ -161,16 +163,28 @@ public:
     return *instant_actions_send_service_;
   }
 
-  /// Read access to the OnboardAGV service (test + diagnostics).
+  /// Read access to the OnboardAGV service (single).
   OnboardAGVService& onboard_agv_service()
   {
     return *onboard_agv_service_;
   }
 
-  /// Read access to the OffboardAGV service (test + diagnostics).
+  /// Read access to the OnboardAGVBatch service (batch).
+  OnboardAGVBatchService& onboard_agv_batch_service()
+  {
+    return *onboard_agv_batch_service_;
+  }
+
+  /// Read access to the OffboardAGV service (single).
   OffboardAGVService& offboard_agv_service()
   {
     return *offboard_agv_service_;
+  }
+
+  /// Read access to the OffboardAGVBatch service (batch).
+  OffboardAGVBatchService& offboard_agv_batch_service()
+  {
+    return *offboard_agv_batch_service_;
   }
 
   /// Read access to the GetLoadedMap service (test + diagnostics).
@@ -251,7 +265,9 @@ private:
   std::unique_ptr<OrderSendService> order_send_service_;
   std::unique_ptr<InstantActionsSendService> instant_actions_send_service_;
   std::unique_ptr<OnboardAGVService> onboard_agv_service_;
+  std::unique_ptr<OnboardAGVBatchService> onboard_agv_batch_service_;
   std::unique_ptr<OffboardAGVService> offboard_agv_service_;
+  std::unique_ptr<OffboardAGVBatchService> offboard_agv_batch_service_;
   std::unique_ptr<GetLoadedMapService> get_loaded_map_service_;
   std::unique_ptr<ResumeModeCancelledQueueService>
     resume_mode_cancelled_queue_service_;
@@ -259,8 +275,8 @@ private:
     discard_mode_cancelled_queue_service_;
   std::unique_ptr<GetMasterBrokerStatusService>
     get_master_broker_status_service_;
-  // Async-dispatch (MAPF / RES) — created publisher-first so the
-  // subscriber can capture a shared reference at construction time.
+  // Async-dispatch — created publisher-first so the subscriber can
+  // capture a shared reference at construction time.
   std::shared_ptr<AssignmentResultPublisher> assignment_result_publisher_;
   std::unique_ptr<AssignOrderRequestSubscriber>
     assign_order_request_subscriber_;

@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#ifndef VDA5050_MASTER_ROS2__OFFBOARD_AGV_SERVICE_HPP_
-#define VDA5050_MASTER_ROS2__OFFBOARD_AGV_SERVICE_HPP_
+#ifndef VDA5050_MASTER_ROS2__OFFBOARD_AGV_BATCH_SERVICE_HPP_
+#define VDA5050_MASTER_ROS2__OFFBOARD_AGV_BATCH_SERVICE_HPP_
 
 #include <cstddef>
 #include <functional>
@@ -27,64 +27,58 @@
 #include <vector>
 
 #include "rclcpp/rclcpp.hpp"
-#include "vda5050_master_ros2/srv/offboard_agv.hpp"
+#include "vda5050_master_ros2/srv/offboard_agv_batch.hpp"
 
 namespace vda5050_master_ros2 {
 // =============================================================================
-// OffboardAGVService — single-AGV ROS 2 service for AGV offboarding.
+// OffboardAGVBatchService — batch ROS 2 service for AGV offboarding.
 // =============================================================================
 //
-// Service name: /<topic_namespace>/offboard_agv
+// Service name: /<topic_namespace>/offboard_agvs
 //
-// Request carries one AGVKey. Response is a single status enum
-// (SUCCESS / NOT_ONBOARDED / INVALID_REQUEST). For offboarding N AGVs
-// in one call see OffboardAGVBatchService (the batch sibling). Both
-// services route through master.offboard_agv_batch() under the hood.
+// Request carries an array of AGVKey. Each present key is offboarded;
+// missing or empty-key entries are silently ignored (idempotent).
+// Wraps VDA5050Master::offboard_agv_batch — same path used by
+// OffboardAGVService (single) and FleetRosterSubscriber.
 
-class OffboardAGVService
+class OffboardAGVBatchService
 {
 public:
-  /// Service name leaf — appended after the namespace prefix.
-  static constexpr const char* kServiceLeaf = "offboard_agv";
+  static constexpr const char* kServiceLeaf = "offboard_agv_batch";
 
-  /// Batch offboard dispatcher. Typically wraps
-  /// VDA5050Master::offboard_agv_batch — the single-AGV service wraps
-  /// the request into a one-element vector internally. Returns the
-  /// number actually offboarded (keys present in agvs_).
   using OffboardBatcher = std::function<std::size_t(
     const std::vector<std::pair<std::string, std::string>>&)>;
 
-  OffboardAGVService(
+  OffboardAGVBatchService(
     rclcpp::Node::SharedPtr node, OffboardBatcher batcher,
     const std::string& topic_namespace = "vda5050_master");
 
-  ~OffboardAGVService() = default;
-  OffboardAGVService(const OffboardAGVService&) = delete;
-  OffboardAGVService& operator=(const OffboardAGVService&) = delete;
-  OffboardAGVService(OffboardAGVService&&) = delete;
-  OffboardAGVService& operator=(OffboardAGVService&&) = delete;
+  ~OffboardAGVBatchService() = default;
+  OffboardAGVBatchService(const OffboardAGVBatchService&) = delete;
+  OffboardAGVBatchService& operator=(const OffboardAGVBatchService&) = delete;
+  OffboardAGVBatchService(OffboardAGVBatchService&&) = delete;
+  OffboardAGVBatchService& operator=(OffboardAGVBatchService&&) = delete;
 
-  /// \brief The fully-qualified ROS 2 service name.
   const std::string& service_name() const
   {
     return service_name_;
   }
 
 private:
-  using OffboardAGV = vda5050_master_ros2::srv::OffboardAGV;
+  using OffboardAGVBatch = vda5050_master_ros2::srv::OffboardAGVBatch;
 
   void handle_request(
-    const std::shared_ptr<OffboardAGV::Request> request,
-    std::shared_ptr<OffboardAGV::Response> response);
+    const std::shared_ptr<OffboardAGVBatch::Request> request,
+    std::shared_ptr<OffboardAGVBatch::Response> response);
 
   static std::string make_service_name(const std::string& topic_namespace);
 
   rclcpp::Node::SharedPtr node_;
   OffboardBatcher batcher_;
   std::string service_name_;
-  rclcpp::Service<OffboardAGV>::SharedPtr service_;
+  rclcpp::Service<OffboardAGVBatch>::SharedPtr service_;
 };
 
 }  // namespace vda5050_master_ros2
 
-#endif  // VDA5050_MASTER_ROS2__OFFBOARD_AGV_SERVICE_HPP_
+#endif  // VDA5050_MASTER_ROS2__OFFBOARD_AGV_BATCH_SERVICE_HPP_

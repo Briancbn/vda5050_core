@@ -18,21 +18,14 @@
 
 #include "vda5050_master_ros2/onboard_agv_service.hpp"
 
-#include <cstddef>
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "vda5050_core/logger/logger.hpp"
 
 namespace vda5050_master_ros2 {
-namespace {
-
-// Master-side default queue size for an onboarded AGV. Keep in sync
-// with VDA5050Master::onboard_agv default in master.hpp.
-constexpr std::size_t kDefaultMaxQueueSize = 10;
-
-}  // namespace
 
 std::string OnboardAGVService::make_service_name(
   const std::string& topic_namespace)
@@ -48,10 +41,10 @@ std::string OnboardAGVService::make_service_name(
 }
 
 OnboardAGVService::OnboardAGVService(
-  rclcpp::Node::SharedPtr node, OnboardHandler handler,
+  rclcpp::Node::SharedPtr node, OnboardBatcher batcher,
   const std::string& topic_namespace)
 : node_(std::move(node)),
-  handler_(std::move(handler)),
+  batcher_(std::move(batcher)),
   service_name_(make_service_name(topic_namespace))
 {
   service_ = node_->create_service<OnboardAGV>(
@@ -68,34 +61,34 @@ void OnboardAGVService::handle_request(
   const std::shared_ptr<OnboardAGV::Request> request,
   std::shared_ptr<OnboardAGV::Response> response)
 {
-  // Echo identity for FMS-side correlation.
-  response->manufacturer = request->manufacturer;
-  response->serial_number = request->serial_number;
+  using vda5050_core::master::VDA5050Master;
 
-  if (request->manufacturer.empty() || request->serial_number.empty())
+  response->manufacturer = request->agv.manufacturer;
+  response->serial_number = request->agv.serial_number;
+
+  VDA5050Master::OnboardSpec spec;
+  spec.manufacturer = request->agv.manufacturer;
+  spec.serial_number = request->agv.serial_number;
+  // Wire sentinel 0 → keep the master-side default (10).
+  if (request->agv.max_queue_size != 0)
+  {
+    spec.max_queue_size = request->agv.max_queue_size;
+  }
+  spec.drop_oldest = request->agv.drop_oldest;
+
+  auto result = batcher_({spec});
+
+  if (!result.failed.empty())
   {
     response->status = OnboardAGV::Response::INVALID_REQUEST;
-    return;
   }
-
-  // Coerce 0 sentinel to the C++ default to avoid the lambda having
-  // to know about the master-side default (keeps the service-master
-  // boundary clean).
-  const std::size_t qs = request->max_queue_size == 0
-                           ? kDefaultMaxQueueSize
-                           : static_cast<std::size_t>(request->max_queue_size);
-
-  OnboardOutcome outcome = handler_(
-    request->manufacturer, request->serial_number, qs, request->drop_oldest);
-
-  switch (outcome.decision)
+  else if (!result.skipped_already_onboarded.empty())
   {
-    case OnboardOutcome::ONBOARDED:
-      response->status = OnboardAGV::Response::SUCCESS;
-      break;
-    case OnboardOutcome::ALREADY_ONBOARDED:
-      response->status = OnboardAGV::Response::ALREADY_ONBOARDED;
-      break;
+    response->status = OnboardAGV::Response::ALREADY_ONBOARDED;
+  }
+  else
+  {
+    response->status = OnboardAGV::Response::SUCCESS;
   }
 }
 

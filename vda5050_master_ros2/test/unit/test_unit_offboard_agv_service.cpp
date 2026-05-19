@@ -20,10 +20,13 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstddef>
 #include <future>
 #include <memory>
 #include <string>
 #include <thread>
+#include <utility>
+#include <vector>
 
 #include "rclcpp/executors/single_threaded_executor.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -40,29 +43,32 @@ constexpr const char* kSerial = "AGV01";
 
 using OffboardAGV = vda5050_master_ros2::srv::OffboardAGV;
 
-struct HandlerStub
+struct BatcherStub
 {
   std::shared_ptr<std::atomic<int>> calls{
     std::make_shared<std::atomic<int>>(0)};
   std::shared_ptr<std::string> last_mfg{std::make_shared<std::string>()};
   std::shared_ptr<std::string> last_serial{std::make_shared<std::string>()};
-  std::shared_ptr<OffboardAGVService::OffboardOutcome::Decision> canned{
-    std::make_shared<OffboardAGVService::OffboardOutcome::Decision>(
-      OffboardAGVService::OffboardOutcome::OFFBOARDED)};
+  // Number of AGVs the batcher should report as removed.
+  std::shared_ptr<std::atomic<std::size_t>> canned_removed{
+    std::make_shared<std::atomic<std::size_t>>(1)};
 
-  OffboardAGVService::OffboardHandler as_callable()
+  OffboardAGVService::OffboardBatcher as_callable()
   {
     auto c = calls;
     auto lm = last_mfg;
     auto ls = last_serial;
-    auto cn = canned;
-    return [c, lm, ls, cn](
-             const std::string& mfg,
-             const std::string& serial) -> OffboardAGVService::OffboardOutcome {
+    auto cn = canned_removed;
+    return [c, lm, ls,
+            cn](const std::vector<std::pair<std::string, std::string>>& keys)
+             -> std::size_t {
       c->fetch_add(1);
-      *lm = mfg;
-      *ls = serial;
-      return {*cn};
+      if (!keys.empty())
+      {
+        *lm = keys[0].first;
+        *ls = keys[0].second;
+      }
+      return cn->load();
     };
   }
 };
@@ -113,8 +119,8 @@ protected:
     auto client = node_->create_client<OffboardAGV>(service_name);
     if (!client->wait_for_service(timeout)) return nullptr;
     auto request = std::make_shared<OffboardAGV::Request>();
-    request->manufacturer = mfg;
-    request->serial_number = serial;
+    request->agv.manufacturer = mfg;
+    request->agv.serial_number = serial;
     auto future = client->async_send_request(request);
     if (future.wait_for(timeout) != std::future_status::ready)
     {
@@ -128,22 +134,22 @@ protected:
 
 TEST_F(OffboardAGVServiceTest, ServiceNameFollowsConvention)
 {
-  HandlerStub stub;
+  BatcherStub stub;
   OffboardAGVService svc(node_, stub.as_callable());
   EXPECT_EQ(svc.service_name(), "/vda5050_master/offboard_agv");
 }
 
 TEST_F(OffboardAGVServiceTest, CustomNamespaceAppliesToServiceName)
 {
-  HandlerStub stub;
+  BatcherStub stub;
   OffboardAGVService svc(node_, stub.as_callable(), "my_master");
   EXPECT_EQ(svc.service_name(), "/my_master/offboard_agv");
 }
 
 TEST_F(OffboardAGVServiceTest, ReturnsSuccessForOnboardedAGV)
 {
-  HandlerStub stub;
-  *stub.canned = OffboardAGVService::OffboardOutcome::OFFBOARDED;
+  BatcherStub stub;
+  stub.canned_removed->store(1);
   OffboardAGVService svc(node_, stub.as_callable());
 
   auto resp = call(svc.service_name(), kMfg, kSerial);
@@ -157,8 +163,8 @@ TEST_F(OffboardAGVServiceTest, ReturnsSuccessForOnboardedAGV)
 
 TEST_F(OffboardAGVServiceTest, ReturnsNotOnboardedForUnknownAGV)
 {
-  HandlerStub stub;
-  *stub.canned = OffboardAGVService::OffboardOutcome::NOT_ONBOARDED;
+  BatcherStub stub;
+  stub.canned_removed->store(0);
   OffboardAGVService svc(node_, stub.as_callable());
 
   auto resp = call(svc.service_name(), kMfg, kSerial);
@@ -169,7 +175,7 @@ TEST_F(OffboardAGVServiceTest, ReturnsNotOnboardedForUnknownAGV)
 
 TEST_F(OffboardAGVServiceTest, ReturnsInvalidRequestForEmptyMfgOrSerial)
 {
-  HandlerStub stub;
+  BatcherStub stub;
   OffboardAGVService svc(node_, stub.as_callable());
 
   auto r1 = call(svc.service_name(), "", kSerial);
@@ -183,10 +189,10 @@ TEST_F(OffboardAGVServiceTest, ReturnsInvalidRequestForEmptyMfgOrSerial)
   EXPECT_EQ(stub.calls->load(), 0);
 }
 
-TEST_F(OffboardAGVServiceTest, ForwardsArgsToHandler)
+TEST_F(OffboardAGVServiceTest, ForwardsArgsToBatcher)
 {
-  HandlerStub stub;
-  *stub.canned = OffboardAGVService::OffboardOutcome::OFFBOARDED;
+  BatcherStub stub;
+  stub.canned_removed->store(1);
   OffboardAGVService svc(node_, stub.as_callable());
 
   auto resp = call(svc.service_name(), kMfg, kSerial);

@@ -55,6 +55,8 @@
 
 #include <rclcpp/rclcpp.hpp>
 
+#include "vda5050_master_ros2/msg/agv_key.hpp"
+#include "vda5050_master_ros2/msg/agv_onboard_spec.hpp"
 #include "vda5050_master_ros2/srv/assign_instant_actions.hpp"
 #include "vda5050_master_ros2/srv/assign_order.hpp"
 #include "vda5050_master_ros2/srv/discard_mode_cancelled_queue.hpp"
@@ -63,7 +65,9 @@
 #include "vda5050_master_ros2/srv/get_master_broker_status.hpp"
 #include "vda5050_master_ros2/srv/get_order_status.hpp"
 #include "vda5050_master_ros2/srv/offboard_agv.hpp"
+#include "vda5050_master_ros2/srv/offboard_agv_batch.hpp"
 #include "vda5050_master_ros2/srv/onboard_agv.hpp"
+#include "vda5050_master_ros2/srv/onboard_agv_batch.hpp"
 #include "vda5050_master_ros2/srv/resume_mode_cancelled_queue.hpp"
 
 #include "vda5050_interfaces/msg/connection.hpp"
@@ -97,7 +101,9 @@ void signal_handler(int sig)
 using AssignOrder = vda5050_master_ros2::srv::AssignOrder;
 using AssignInstantActions = vda5050_master_ros2::srv::AssignInstantActions;
 using OnboardAGV = vda5050_master_ros2::srv::OnboardAGV;
+using OnboardAGVBatch = vda5050_master_ros2::srv::OnboardAGVBatch;
 using OffboardAGV = vda5050_master_ros2::srv::OffboardAGV;
+using OffboardAGVBatch = vda5050_master_ros2::srv::OffboardAGVBatch;
 using GetDeviceStatus = vda5050_master_ros2::srv::GetDeviceStatus;
 using GetOrderStatus = vda5050_master_ros2::srv::GetOrderStatus;
 using GetLoadedMap = vda5050_master_ros2::srv::GetLoadedMap;
@@ -313,8 +319,8 @@ public:
   ~OffboardOnExit()
   {
     auto req = std::make_shared<OffboardAGV::Request>();
-    req->manufacturer = mfg_;
-    req->serial_number = serial_;
+    req->agv.manufacturer = mfg_;
+    req->agv.serial_number = serial_;
     // Short timeout; if it fails, don't throw from the destructor.
     try
     {
@@ -351,31 +357,27 @@ bool scenario_happy_path(FmsContext& ctx)
   // can't match residual topic traffic from a prior scenario.
   const std::string order_id = unique_order_id("happy");
 
-  // 1. Onboard
+  // 1. Onboard (single-AGV)
   {
     auto req = std::make_shared<OnboardAGV::Request>();
-    req->manufacturer = ctx.mfg;
-    req->serial_number = ctx.serial;
+    req->agv.manufacturer = ctx.mfg;
+    req->agv.serial_number = ctx.serial;
     auto resp = call_service<OnboardAGV>(
       ctx.node, fmt::format("/{}/onboard_agv", ctx.master_ns), req,
       ctx.timeout);
     if (!ok_nn(resp, "onboard_agv response")) return false;
-    // Accept both SUCCESS (0) and ALREADY_ONBOARDED (1) — both are
-    // non-failure outcomes per the service contract. Re-runs of this
-    // scenario in the same master session normally hit ALREADY_ONBOARDED
-    // because the OffboardOnExit RAII guard runs at FUNCTION exit, but
-    // the master may still have the AGV record if a prior run failed
-    // partway. Treating ALREADY_ONBOARDED as failure would make every
-    // re-run from a dirty state spuriously fail.
-    const int onboard_status = static_cast<int>(resp->status);
-    if (onboard_status != 0 && onboard_status != 1)
+    // Accept SUCCESS (newly onboarded) and ALREADY_ONBOARDED — both
+    // leave the master ready to receive orders for this AGV.
+    if (
+      resp->status != OnboardAGV::Response::SUCCESS &&
+      resp->status != OnboardAGV::Response::ALREADY_ONBOARDED)
     {
       fmt::print(
-        stderr, "  FAIL (onboard status): expected 0 or 1, got {}\n",
-        onboard_status);
+        stderr, "  FAIL (onboard): status={}\n",
+        static_cast<int>(resp->status));
       return false;
     }
-    fmt::print("  onboard accepted (status={})\n", onboard_status);
+    fmt::print("  onboard status={}\n", static_cast<int>(resp->status));
   }
 
   // 2. Wait for state to arrive (AGV publishes at 1 Hz; ~3s is plenty)
@@ -449,12 +451,16 @@ bool scenario_stitch(FmsContext& ctx)
   // Onboard + wait for state (re-use happy logic via inline calls).
   {
     auto req = std::make_shared<OnboardAGV::Request>();
-    req->manufacturer = ctx.mfg;
-    req->serial_number = ctx.serial;
+    req->agv.manufacturer = ctx.mfg;
+    req->agv.serial_number = ctx.serial;
     auto resp = call_service<OnboardAGV>(
       ctx.node, fmt::format("/{}/onboard_agv", ctx.master_ns), req,
       ctx.timeout);
     if (!ok_nn(resp, "onboard_agv response")) return false;
+    if (
+      resp->status != OnboardAGV::Response::SUCCESS &&
+      resp->status != OnboardAGV::Response::ALREADY_ONBOARDED)
+      return false;
     std::this_thread::sleep_for(std::chrono::seconds(3));
     fmt::print("  onboard + state ready\n");
   }
@@ -614,28 +620,42 @@ bool scenario_onboard_flood(FmsContext& ctx)
 {
   fmt::print("→ scenario_onboard_flood\n");
   const std::vector<std::string> serials = {"FLOOD01", "FLOOD02", "FLOOD03"};
-  for (const auto& s : serials)
+
+  // Batch onboard via OnboardAGVBatch — one round-trip for N AGVs.
   {
-    auto req = std::make_shared<OnboardAGV::Request>();
-    req->manufacturer = ctx.mfg;
-    req->serial_number = s;
-    auto resp = call_service<OnboardAGV>(
-      ctx.node, fmt::format("/{}/onboard_agv", ctx.master_ns), req,
+    auto req = std::make_shared<OnboardAGVBatch::Request>();
+    for (const auto& s : serials)
+    {
+      vda5050_master_ros2::msg::AGVOnboardSpec entry;
+      entry.manufacturer = ctx.mfg;
+      entry.serial_number = s;
+      req->agvs.push_back(entry);
+    }
+    auto resp = call_service<OnboardAGVBatch>(
+      ctx.node, fmt::format("/{}/onboard_agv_batch", ctx.master_ns), req,
       ctx.timeout);
-    if (!ok_nn(resp, fmt::format("onboard {}", s))) return false;
+    if (!ok_nn(resp, "onboard_agv_batch")) return false;
+    if (!resp->failed.empty()) return false;
     fmt::print(
-      "  onboarded {} (status={})\n", s, static_cast<int>(resp->status));
+      "  onboarded {} of {} (others were already onboarded)\n",
+      resp->onboarded.size(), serials.size());
   }
-  // Cleanup: offboard them.
-  for (const auto& s : serials)
+
+  // Cleanup: batch offboard.
   {
-    auto req = std::make_shared<OffboardAGV::Request>();
-    req->manufacturer = ctx.mfg;
-    req->serial_number = s;
-    auto resp = call_service<OffboardAGV>(
-      ctx.node, fmt::format("/{}/offboard_agv", ctx.master_ns), req,
+    auto req = std::make_shared<OffboardAGVBatch::Request>();
+    for (const auto& s : serials)
+    {
+      vda5050_master_ros2::msg::AGVKey key;
+      key.manufacturer = ctx.mfg;
+      key.serial_number = s;
+      req->agvs.push_back(key);
+    }
+    auto resp = call_service<OffboardAGVBatch>(
+      ctx.node, fmt::format("/{}/offboard_agv_batch", ctx.master_ns), req,
       ctx.timeout);
-    if (!ok_nn(resp, fmt::format("offboard {}", s))) return false;
+    if (!ok_nn(resp, "offboard_agv_batch")) return false;
+    fmt::print("  offboarded {}\n", resp->offboarded_count);
   }
   fmt::print("  flood completed and cleaned up\n");
   return true;
@@ -826,8 +846,8 @@ int run_repl(FmsContext& ctx)
       auto mfg = tokens.size() > 1 ? tokens[1] : ctx.mfg;
       auto serial = tokens.size() > 2 ? tokens[2] : ctx.serial;
       auto req = std::make_shared<OnboardAGV::Request>();
-      req->manufacturer = mfg;
-      req->serial_number = serial;
+      req->agv.manufacturer = mfg;
+      req->agv.serial_number = serial;
       auto r = call_service<OnboardAGV>(
         ctx.node, fmt::format("/{}/onboard_agv", ctx.master_ns), req,
         ctx.timeout);
@@ -839,8 +859,8 @@ int run_repl(FmsContext& ctx)
       auto mfg = tokens.size() > 1 ? tokens[1] : ctx.mfg;
       auto serial = tokens.size() > 2 ? tokens[2] : ctx.serial;
       auto req = std::make_shared<OffboardAGV::Request>();
-      req->manufacturer = mfg;
-      req->serial_number = serial;
+      req->agv.manufacturer = mfg;
+      req->agv.serial_number = serial;
       auto r = call_service<OffboardAGV>(
         ctx.node, fmt::format("/{}/offboard_agv", ctx.master_ns), req,
         ctx.timeout);

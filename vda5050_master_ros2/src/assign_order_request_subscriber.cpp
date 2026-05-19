@@ -133,7 +133,6 @@ void AssignOrderRequestSubscriber::on_request(
         vda5050_core::types::Error, vda5050_interfaces::msg::Error>(err));
   }
 
-  // Record correlation so OrderStatus can echo assignment_id back.
   if (recorder_ && (decision == AR::ACCEPTED || decision == AR::QUEUED))
   {
     recorder_(

@@ -192,8 +192,7 @@ VDA5050Master::BatchOnboardResult VDA5050Master::onboard_agv_batch(
   {
     if (spec.manufacturer.empty() || spec.serial_number.empty())
     {
-      result.failed++;
-      result.failed_keys.emplace_back(spec.manufacturer, spec.serial_number);
+      result.failed.push_back(spec);
       VDA5050_WARN(
         "[VDA5050Master] onboard_agv_batch: empty manufacturer or serial "
         "rejected");
@@ -203,19 +202,20 @@ VDA5050Master::BatchOnboardResult VDA5050Master::onboard_agv_batch(
     const std::string agv_id = spec.manufacturer + "/" + spec.serial_number;
     if (agvs_.find(agv_id) != agvs_.end())
     {
-      result.skipped_already_onboarded++;
+      result.skipped_already_onboarded.push_back(spec);
       continue;
     }
 
     agvs_[agv_id] = create_agv_locked_(
       spec.manufacturer, spec.serial_number, spec.max_queue_size,
       spec.drop_oldest);
-    result.onboarded_count++;
+    result.onboarded.push_back(spec);
   }
 
   VDA5050_INFO(
     "[VDA5050Master] onboard_agv_batch: onboarded={} skipped={} failed={}",
-    result.onboarded_count, result.skipped_already_onboarded, result.failed);
+    result.onboarded.size(), result.skipped_already_onboarded.size(),
+    result.failed.size());
   return result;
 }
 

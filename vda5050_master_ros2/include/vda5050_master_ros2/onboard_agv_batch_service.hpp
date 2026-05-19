@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#ifndef VDA5050_MASTER_ROS2__ONBOARD_AGV_SERVICE_HPP_
-#define VDA5050_MASTER_ROS2__ONBOARD_AGV_SERVICE_HPP_
+#ifndef VDA5050_MASTER_ROS2__ONBOARD_AGV_BATCH_SERVICE_HPP_
+#define VDA5050_MASTER_ROS2__ONBOARD_AGV_BATCH_SERVICE_HPP_
 
 #include <functional>
 #include <memory>
@@ -26,64 +26,59 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "vda5050_core/master/master.hpp"
-#include "vda5050_master_ros2/srv/onboard_agv.hpp"
+#include "vda5050_master_ros2/srv/onboard_agv_batch.hpp"
 
 namespace vda5050_master_ros2 {
 // =============================================================================
-// OnboardAGVService — single-AGV ROS 2 service for AGV onboarding.
+// OnboardAGVBatchService — batch ROS 2 service for AGV onboarding.
 // =============================================================================
 //
-// Service name: /<topic_namespace>/onboard_agv
+// Service name: /<topic_namespace>/onboard_agvs
 //
-// Request carries one AGVOnboardSpec. Response is a single status enum
-// (SUCCESS / ALREADY_ONBOARDED / INVALID_REQUEST). For onboarding N AGVs
-// in one call see OnboardAGVBatchService (the batch sibling). Both services
-// route through master.onboard_agv_batch() under the hood.
+// Request carries an array of AGVOnboardSpec; each entry is processed
+// independently (partial success). Wraps
+// VDA5050Master::onboard_agv_batch — same dispatcher path used by
+// OnboardAGVService (single) and FleetRosterSubscriber.
 
-class OnboardAGVService
+class OnboardAGVBatchService
 {
 public:
-  /// Service name leaf — appended after the namespace prefix.
-  static constexpr const char* kServiceLeaf = "onboard_agv";
+  static constexpr const char* kServiceLeaf = "onboard_agv_batch";
 
-  /// Batch onboard dispatcher. Typically wraps
-  /// VDA5050Master::onboard_agv_batch — the single-AGV service wraps
-  /// the request into a one-element vector internally.
   using OnboardBatcher =
     std::function<vda5050_core::master::VDA5050Master::BatchOnboardResult(
       const std::vector<vda5050_core::master::VDA5050Master::OnboardSpec>&)>;
 
-  OnboardAGVService(
+  OnboardAGVBatchService(
     rclcpp::Node::SharedPtr node, OnboardBatcher batcher,
     const std::string& topic_namespace = "vda5050_master");
 
-  ~OnboardAGVService() = default;
-  OnboardAGVService(const OnboardAGVService&) = delete;
-  OnboardAGVService& operator=(const OnboardAGVService&) = delete;
-  OnboardAGVService(OnboardAGVService&&) = delete;
-  OnboardAGVService& operator=(OnboardAGVService&&) = delete;
+  ~OnboardAGVBatchService() = default;
+  OnboardAGVBatchService(const OnboardAGVBatchService&) = delete;
+  OnboardAGVBatchService& operator=(const OnboardAGVBatchService&) = delete;
+  OnboardAGVBatchService(OnboardAGVBatchService&&) = delete;
+  OnboardAGVBatchService& operator=(OnboardAGVBatchService&&) = delete;
 
-  /// \brief The fully-qualified ROS 2 service name.
   const std::string& service_name() const
   {
     return service_name_;
   }
 
 private:
-  using OnboardAGV = vda5050_master_ros2::srv::OnboardAGV;
+  using OnboardAGVBatch = vda5050_master_ros2::srv::OnboardAGVBatch;
 
   void handle_request(
-    const std::shared_ptr<OnboardAGV::Request> request,
-    std::shared_ptr<OnboardAGV::Response> response);
+    const std::shared_ptr<OnboardAGVBatch::Request> request,
+    std::shared_ptr<OnboardAGVBatch::Response> response);
 
   static std::string make_service_name(const std::string& topic_namespace);
 
   rclcpp::Node::SharedPtr node_;
   OnboardBatcher batcher_;
   std::string service_name_;
-  rclcpp::Service<OnboardAGV>::SharedPtr service_;
+  rclcpp::Service<OnboardAGVBatch>::SharedPtr service_;
 };
 
 }  // namespace vda5050_master_ros2
 
-#endif  // VDA5050_MASTER_ROS2__ONBOARD_AGV_SERVICE_HPP_
+#endif  // VDA5050_MASTER_ROS2__ONBOARD_AGV_BATCH_SERVICE_HPP_

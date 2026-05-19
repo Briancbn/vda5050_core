@@ -1,42 +1,34 @@
-# OnboardAGV — register an AGV with the master so MQTT messages from
+# OnboardAGV — register a single AGV with the master so MQTT messages from
 # this AGV are routed to handlers. Wraps VDA5050Master::onboard_agv.
-# Service half of Task #53.
+#
+# Single-AGV variant. For onboarding multiple AGVs in one call (e.g. from a
+# FleetRoster snapshot), use OnboardAGVBatch.srv — the batch sibling.
+#
+# Request reuses AGVOnboardSpec: same field set is carried inside
+# FleetRoster.msg (DM → master fleet snapshot) and inside OnboardAGVBatch.srv
+# batch requests, so a caller can build one entry and dispatch it through
+# any of the three surfaces.
 #
 # **Idempotency**: re-onboarding the same {manufacturer, serial_number}
-# returns ALREADY_ONBOARDED without disturbing the existing AGV
-# instance. FMS clients can call this safely on every startup or on
-# AGV-pool addition.
+# returns ALREADY_ONBOARDED without disturbing the existing AGV instance.
+# FMS clients can call this safely on every startup or on AGV-pool
+# addition.
 #
 # **What onboarding does master-side**:
 #   - Creates an AGV instance with a per-AGV ProtocolAdapter.
-#   - Subscribes to the AGV's MQTT topics (state, connection,
-#     factsheet, visualization).
-#   - Adds the AGV to the master's onboarded list (visible to other
-#     services like AssignOrder, GetDeviceStatus, etc.).
-#
-# Optional ctor params `max_queue_size` and `drop_oldest` are exposed
-# with the same defaults as the C++ signature; FMS clients that don't
-# care can omit them and accept defaults.
+#   - Subscribes to the AGV's MQTT topics (state, connection, factsheet,
+#     visualization).
+#   - Adds the AGV to the master's onboarded list (visible to other services
+#     like AssignOrder, GetDeviceStatus, etc.).
 
-string manufacturer
-string serial_number
-
-# AGV outbound message-queue capacity. 0 means "use master default" (10).
-uint32 max_queue_size 0
-
-# Queue-full policy. true (default) drops oldest message; false rejects
-# the new message. Distinct from max_queue_size==0 sentinel — applies
-# even under the default queue size.
-bool drop_oldest true
+AGVOnboardSpec agv
 ---
 # Status enum.
 #
-# SUCCESS              — AGV successfully onboarded; master will start
-#                        routing MQTT messages from this AGV.
+# SUCCESS              — AGV successfully onboarded.
 # ALREADY_ONBOARDED    — an AGV with this {manufacturer, serial_number}
 #                        is already in the master's onboard list.
-#                        Idempotent no-op; treat as success — the
-#                        existing AGV instance is untouched.
+#                        Idempotent no-op; treat as success.
 # INVALID_REQUEST      — empty manufacturer or serial_number.
 uint8 SUCCESS=0
 uint8 ALREADY_ONBOARDED=1

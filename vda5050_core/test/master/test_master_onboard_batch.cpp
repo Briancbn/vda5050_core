@@ -97,10 +97,10 @@ protected:
 TEST_F(OnboardBatchTest, OnboardBatch_EmptyInputProducesEmptyResult)
 {
   auto r = master_->onboard_agv_batch({});
-  EXPECT_EQ(r.onboarded_count, 0u);
-  EXPECT_EQ(r.skipped_already_onboarded, 0u);
-  EXPECT_EQ(r.failed, 0u);
-  EXPECT_TRUE(r.failed_keys.empty());
+  EXPECT_EQ(r.onboarded.size(), 0u);
+  EXPECT_EQ(r.skipped_already_onboarded.size(), 0u);
+  EXPECT_EQ(r.failed.size(), 0u);
+  EXPECT_TRUE(r.failed.empty());
 }
 
 TEST_F(OnboardBatchTest, OnboardBatch_OnboardsAllFromEmptyMaster)
@@ -109,9 +109,9 @@ TEST_F(OnboardBatchTest, OnboardBatch_OnboardsAllFromEmptyMaster)
     spec("ACME", "AGV01"), spec("ACME", "AGV02"), spec("OTHER", "BOT01")};
   auto r = master_->onboard_agv_batch(specs);
 
-  EXPECT_EQ(r.onboarded_count, 3u);
-  EXPECT_EQ(r.skipped_already_onboarded, 0u);
-  EXPECT_EQ(r.failed, 0u);
+  EXPECT_EQ(r.onboarded.size(), 3u);
+  EXPECT_EQ(r.skipped_already_onboarded.size(), 0u);
+  EXPECT_EQ(r.failed.size(), 0u);
 
   auto roster = master_->get_onboarded_agvs();
   EXPECT_EQ(roster.size(), 3u);
@@ -129,9 +129,9 @@ TEST_F(OnboardBatchTest, OnboardBatch_SkipsAlreadyOnboarded)
     spec("ACME", "AGV02")};
   auto r = master_->onboard_agv_batch(specs);
 
-  EXPECT_EQ(r.onboarded_count, 1u);
-  EXPECT_EQ(r.skipped_already_onboarded, 1u);
-  EXPECT_EQ(r.failed, 0u);
+  EXPECT_EQ(r.onboarded.size(), 1u);
+  EXPECT_EQ(r.skipped_already_onboarded.size(), 1u);
+  EXPECT_EQ(r.failed.size(), 0u);
   EXPECT_EQ(master_->get_onboarded_agvs().size(), 2u);
 }
 
@@ -141,10 +141,9 @@ TEST_F(OnboardBatchTest, OnboardBatch_RejectsEmptyKeys)
     spec("", "AGV01"), spec("ACME", "")};
   auto r = master_->onboard_agv_batch(specs);
 
-  EXPECT_EQ(r.onboarded_count, 0u);
-  EXPECT_EQ(r.skipped_already_onboarded, 0u);
-  EXPECT_EQ(r.failed, 2u);
-  EXPECT_EQ(r.failed_keys.size(), 2u);
+  EXPECT_EQ(r.onboarded.size(), 0u);
+  EXPECT_EQ(r.skipped_already_onboarded.size(), 0u);
+  EXPECT_EQ(r.failed.size(), 2u);
   EXPECT_TRUE(master_->get_onboarded_agvs().empty());
 }
 
@@ -160,9 +159,9 @@ TEST_F(OnboardBatchTest, OnboardBatch_MixedSpecs)
   };
   auto r = master_->onboard_agv_batch(specs);
 
-  EXPECT_EQ(r.onboarded_count, 2u);
-  EXPECT_EQ(r.skipped_already_onboarded, 1u);
-  EXPECT_EQ(r.failed, 1u);
+  EXPECT_EQ(r.onboarded.size(), 2u);
+  EXPECT_EQ(r.skipped_already_onboarded.size(), 1u);
+  EXPECT_EQ(r.failed.size(), 1u);
   EXPECT_EQ(master_->get_onboarded_agvs().size(), 3u);
 }
 
@@ -172,7 +171,7 @@ TEST_F(OnboardBatchTest, OnboardBatch_RespectsPerSpecQueueConfig)
     VDA5050Master::OnboardSpec{"ACME", "AGV01", 5, false},
     VDA5050Master::OnboardSpec{"ACME", "AGV02", 20, true}};
   auto r = master_->onboard_agv_batch(specs);
-  EXPECT_EQ(r.onboarded_count, 2u);
+  EXPECT_EQ(r.onboarded.size(), 2u);
   // We can't directly observe queue config from outside, but both
   // AGVs should be reachable via get_agv.
   EXPECT_NE(master_->get_agv("ACME", "AGV01"), nullptr);

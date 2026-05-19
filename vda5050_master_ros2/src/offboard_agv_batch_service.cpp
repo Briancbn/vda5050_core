@@ -16,8 +16,9 @@
  * limitations under the License.
  */
 
-#include "vda5050_master_ros2/offboard_agv_service.hpp"
+#include "vda5050_master_ros2/offboard_agv_batch_service.hpp"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -27,7 +28,7 @@
 
 namespace vda5050_master_ros2 {
 
-std::string OffboardAGVService::make_service_name(
+std::string OffboardAGVBatchService::make_service_name(
   const std::string& topic_namespace)
 {
   std::string name = "/";
@@ -40,41 +41,36 @@ std::string OffboardAGVService::make_service_name(
   return name;
 }
 
-OffboardAGVService::OffboardAGVService(
+OffboardAGVBatchService::OffboardAGVBatchService(
   rclcpp::Node::SharedPtr node, OffboardBatcher batcher,
   const std::string& topic_namespace)
 : node_(std::move(node)),
   batcher_(std::move(batcher)),
   service_name_(make_service_name(topic_namespace))
 {
-  service_ = node_->create_service<OffboardAGV>(
+  service_ = node_->create_service<OffboardAGVBatch>(
     service_name_, [this](
-                     const std::shared_ptr<OffboardAGV::Request> request,
-                     std::shared_ptr<OffboardAGV::Response> response) {
+                     const std::shared_ptr<OffboardAGVBatch::Request> request,
+                     std::shared_ptr<OffboardAGVBatch::Response> response) {
       this->handle_request(request, response);
     });
 
-  VDA5050_INFO("[OffboardAGVService] advertised service on {}", service_name_);
+  VDA5050_INFO(
+    "[OffboardAGVBatchService] advertised service on {}", service_name_);
 }
 
-void OffboardAGVService::handle_request(
-  const std::shared_ptr<OffboardAGV::Request> request,
-  std::shared_ptr<OffboardAGV::Response> response)
+void OffboardAGVBatchService::handle_request(
+  const std::shared_ptr<OffboardAGVBatch::Request> request,
+  std::shared_ptr<OffboardAGVBatch::Response> response)
 {
-  response->manufacturer = request->agv.manufacturer;
-  response->serial_number = request->agv.serial_number;
-
-  if (request->agv.manufacturer.empty() || request->agv.serial_number.empty())
+  std::vector<std::pair<std::string, std::string>> keys;
+  keys.reserve(request->agvs.size());
+  for (const auto& k : request->agvs)
   {
-    response->status = OffboardAGV::Response::INVALID_REQUEST;
-    return;
+    keys.emplace_back(k.manufacturer, k.serial_number);
   }
-
-  std::vector<std::pair<std::string, std::string>> keys = {
-    {request->agv.manufacturer, request->agv.serial_number}};
   const std::size_t removed = batcher_(keys);
-  response->status = (removed == 1) ? OffboardAGV::Response::SUCCESS
-                                    : OffboardAGV::Response::NOT_ONBOARDED;
+  response->offboarded_count = static_cast<std::uint32_t>(removed);
 }
 
 }  // namespace vda5050_master_ros2
