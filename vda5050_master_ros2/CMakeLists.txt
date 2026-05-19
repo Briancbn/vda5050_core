@@ -28,6 +28,9 @@ set(msg_files
   msg/AssignOrderRequest.msg
   msg/AssignmentResult.msg
   msg/DeviceStatus.msg
+  msg/FleetRoster.msg
+  msg/FleetRosterEntry.msg
+  msg/MasterConnection.msg
   msg/OrderStatus.msg
 )
 set(srv_files
@@ -191,6 +194,10 @@ if(BUILD_TESTING)
                                                  test/unit/test_unit_assignment_result_publisher.cpp)
   _add_ros2_test(test_assign_order_request_subscriber
                                                  test/unit/test_unit_assign_order_request_subscriber.cpp)
+  _add_ros2_test(test_fleet_roster_subscriber
+                                                 test/unit/test_unit_fleet_roster_subscriber.cpp)
+  _add_ros2_test(test_master_connection_publisher
+                                                 test/unit/test_unit_master_connection_publisher.cpp)
 
   # Pure function — no DDS env needed.
   ament_add_gmock(test_order_status_builder test/unit/test_unit_order_status_builder.cpp)

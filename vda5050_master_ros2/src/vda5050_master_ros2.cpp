@@ -18,16 +18,40 @@
 
 #include "vda5050_master_ros2/vda5050_master_ros2.hpp"
 
+#include <unistd.h>
+
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
 
+#include "vda5050_master_ros2/msg/master_connection.hpp"
 #include "vda5050_master_ros2/order_status_builder.hpp"
 
 namespace vda5050_master_ros2 {
+namespace {
+
+// Build "hostname-pid" so multi-master deployments get unique
+// master_ids without manual config.
+std::string default_master_id()
+{
+  char host[256] = {0};
+  if (::gethostname(host, sizeof(host) - 1) != 0)
+  {
+    host[0] = '\0';
+  }
+  std::string out = host[0] ? std::string(host) : std::string("master");
+  out += "-";
+  out += std::to_string(static_cast<std::int64_t>(::getpid()));
+  return out;
+}
+
+}  // namespace
+
 VDA5050MasterROS2::VDA5050MasterROS2(
   std::shared_ptr<vda5050_core::transport::MqttClientInterface> mqtt_client,
-  rclcpp::Node::SharedPtr ros2_node, const std::string& topic_namespace)
+  rclcpp::Node::SharedPtr ros2_node, const std::string& topic_namespace,
+  const std::string& master_id, const std::string& master_version)
 : vda5050_core::master::VDA5050Master(std::move(mqtt_client)),
   device_status_(
     std::make_unique<DeviceStatusPublisher>(ros2_node, topic_namespace)),
@@ -129,7 +153,7 @@ VDA5050MasterROS2::VDA5050MasterROS2(
     std::make_shared<AssignmentResultPublisher>(ros2_node, topic_namespace)),
   assign_order_request_subscriber_(
     std::make_unique<AssignOrderRequestSubscriber>(
-      std::move(ros2_node),
+      ros2_node,
       [this](
         const std::string& mfg, const std::string& serial,
         const vda5050_core::types::Order& order) {
@@ -142,7 +166,23 @@ VDA5050MasterROS2::VDA5050MasterROS2(
         this->record_assignment(
           mfg, serial, assignment_id, order_id, order_update_id);
       },
-      assignment_result_publisher_, topic_namespace))
+      assignment_result_publisher_, topic_namespace)),
+  master_id_(master_id.empty() ? default_master_id() : master_id),
+  master_connection_publisher_(std::make_unique<MasterConnectionPublisher>(
+    ros2_node, master_id_, master_version,
+    [this]() { return this->get_broker_status().connected; },
+    [this]() {
+      return static_cast<std::uint32_t>(this->get_onboarded_agvs().size());
+    },
+    topic_namespace)),
+  fleet_roster_subscriber_(std::make_unique<FleetRosterSubscriber>(
+    std::move(ros2_node), [this]() { return this->get_onboarded_agvs(); },
+    [this](const std::vector<vda5050_core::master::VDA5050Master::OnboardSpec>&
+             specs) { return this->onboard_agv_batch(specs); },
+    [this](const std::vector<std::pair<std::string, std::string>>& keys) {
+      return this->offboard_agv_batch(keys);
+    },
+    topic_namespace))
 {
 }
 
@@ -201,6 +241,26 @@ void VDA5050MasterROS2::on_factsheet(
       mfg, serial, agv->get_status_snapshot());
   }
   vda5050_core::master::VDA5050Master::on_factsheet(agv_id, factsheet);
+}
+
+void VDA5050MasterROS2::on_broker_disconnected()
+{
+  if (master_connection_publisher_)
+  {
+    master_connection_publisher_->set_state(
+      vda5050_master_ros2::msg::MasterConnection::DEGRADED);
+  }
+  vda5050_core::master::VDA5050Master::on_broker_disconnected();
+}
+
+void VDA5050MasterROS2::on_broker_reconnected()
+{
+  if (master_connection_publisher_)
+  {
+    master_connection_publisher_->set_state(
+      vda5050_master_ros2::msg::MasterConnection::READY);
+  }
+  vda5050_core::master::VDA5050Master::on_broker_reconnected();
 }
 
 }  // namespace vda5050_master_ros2

@@ -31,9 +31,11 @@
 #include "vda5050_master_ros2/device_status_publisher.hpp"
 #include "vda5050_master_ros2/device_status_service.hpp"
 #include "vda5050_master_ros2/discard_mode_cancelled_queue_service.hpp"
+#include "vda5050_master_ros2/fleet_roster_subscriber.hpp"
 #include "vda5050_master_ros2/get_loaded_map_service.hpp"
 #include "vda5050_master_ros2/get_master_broker_status_service.hpp"
 #include "vda5050_master_ros2/instant_actions_send_service.hpp"
+#include "vda5050_master_ros2/master_connection_publisher.hpp"
 #include "vda5050_master_ros2/offboard_agv_service.hpp"
 #include "vda5050_master_ros2/onboard_agv_service.hpp"
 #include "vda5050_master_ros2/order_send_service.hpp"
@@ -103,11 +105,18 @@ public:
   ///                         Caller spins. Must outlive this object.
   /// \param topic_namespace  Prefix for per-AGV ROS 2 topics. Default
   ///                         "vda5050_master".
+  /// \param master_id        Identity advertised on MasterConnection.
+  ///                         Empty falls back to a hostname-pid string
+  ///                         so multi-master deployments get distinct
+  ///                         IDs without configuration.
+  /// \param master_version   Software version string on MasterConnection.
   VDA5050MasterROS2(
     std::shared_ptr<vda5050_core::transport::MqttClientInterface> mqtt_client,
     rclcpp::Node::SharedPtr ros2_node,
     const std::string& topic_namespace =
-      DeviceStatusPublisher::kDefaultNamespace);
+      DeviceStatusPublisher::kDefaultNamespace,
+    const std::string& master_id = "",
+    const std::string& master_version = "vda5050_master_ros2");
 
   ~VDA5050MasterROS2() override = default;
 
@@ -188,6 +197,25 @@ public:
     return *get_master_broker_status_service_;
   }
 
+  /// Read access to the FleetRoster reconciler (test + diagnostics).
+  FleetRosterSubscriber& fleet_roster_subscriber()
+  {
+    return *fleet_roster_subscriber_;
+  }
+
+  /// Read access to the MasterConnection publisher (test + diagnostics).
+  MasterConnectionPublisher& master_connection_publisher()
+  {
+    return *master_connection_publisher_;
+  }
+
+  /// The master_id resolved at construction (deployed-configured or
+  /// hostname-pid fallback).
+  const std::string& master_id() const
+  {
+    return master_id_;
+  }
+
   // ============================================================================
   // VDA5050Master extension callback overrides
   // ============================================================================
@@ -205,6 +233,10 @@ public:
   void on_factsheet(
     const std::string& agv_id,
     const vda5050_core::types::Factsheet& factsheet) override;
+
+  // Broker connection callbacks — drive MasterConnection state.
+  void on_broker_disconnected() override;
+  void on_broker_reconnected() override;
 
 private:
   // agv_id is "{manufacturer}/{serial_number}" (per master.cpp:228).
@@ -232,6 +264,11 @@ private:
   std::shared_ptr<AssignmentResultPublisher> assignment_result_publisher_;
   std::unique_ptr<AssignOrderRequestSubscriber>
     assign_order_request_subscriber_;
+
+  // Device Manager integration.
+  std::string master_id_;
+  std::unique_ptr<MasterConnectionPublisher> master_connection_publisher_;
+  std::unique_ptr<FleetRosterSubscriber> fleet_roster_subscriber_;
 };
 
 }  // namespace vda5050_master_ros2
