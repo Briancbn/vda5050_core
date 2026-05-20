@@ -151,15 +151,15 @@ std::shared_ptr<AGV> VDA5050Master::create_agv_locked_(
   std::size_t max_queue_size, bool drop_oldest)
 {
   // weak_from_this() back-ref lets the AGV dispatch into our virtuals
-  // and detect master destruction.
-  auto agv = std::make_shared<AGV>(
+  // and detect master destruction. Caller wires MQTT subscriptions
+  // separately, outside `agv_mutex_`, to avoid a deadlock where Paho's
+  // network thread fires an inbound `on_state` callback that needs the
+  // master mutex while the subscribing thread is still inside SUBSCRIBE.
+  return std::make_shared<AGV>(
     vda5050_core::execution::ProtocolAdapter::make(
       mqtt_client_, InterfaceName, Version, manufacturer, serial_number),
     manufacturer, serial_number, max_queue_size, drop_oldest,
     StateHeartbeatInterval, weak_from_this());
-  // Wire subscriptions outside the ctor so weak_from_this() is valid.
-  agv->setup_subscriptions();
-  return agv;
 }
 
 void VDA5050Master::onboard_agv(
@@ -168,16 +168,25 @@ void VDA5050Master::onboard_agv(
 {
   std::string agv_id = manufacturer + "/" + serial_number;
 
-  std::lock_guard<std::mutex> lock(agv_mutex_);
-
-  if (get_agv_by_id(agv_id))
+  std::shared_ptr<AGV> new_agv;
   {
-    VDA5050_WARN("[VDA5050Master] AGV already onboarded: {}", agv_id);
-    return;
+    std::lock_guard<std::mutex> lock(agv_mutex_);
+
+    if (get_agv_by_id(agv_id))
+    {
+      VDA5050_WARN("[VDA5050Master] AGV already onboarded: {}", agv_id);
+      return;
+    }
+
+    new_agv = create_agv_locked_(
+      manufacturer, serial_number, max_queue_size, drop_oldest);
+    agvs_[agv_id] = new_agv;
   }
 
-  agvs_[agv_id] = create_agv_locked_(
-    manufacturer, serial_number, max_queue_size, drop_oldest);
+  // MQTT SUBSCRIBE blocks on SUBACK; if a PUBLISH races in on Paho's
+  // network thread it will dispatch on_state -> get_agv() which needs
+  // agv_mutex_. Wire subscriptions outside the lock.
+  new_agv->setup_subscriptions();
 
   VDA5050_INFO("[VDA5050Master] Onboarded AGV: {}", agv_id);
 }
@@ -186,31 +195,41 @@ VDA5050Master::BatchOnboardResult VDA5050Master::onboard_agv_batch(
   const std::vector<OnboardSpec>& specs)
 {
   BatchOnboardResult result;
-  std::lock_guard<std::mutex> lock(agv_mutex_);
+  std::vector<std::shared_ptr<AGV>> new_agvs;
 
-  for (const auto& spec : specs)
   {
-    if (spec.manufacturer.empty() || spec.serial_number.empty())
-    {
-      result.failed.push_back(spec);
-      VDA5050_WARN(
-        "[VDA5050Master] onboard_agv_batch: empty manufacturer or serial "
-        "rejected");
-      continue;
-    }
+    std::lock_guard<std::mutex> lock(agv_mutex_);
 
-    const std::string agv_id = spec.manufacturer + "/" + spec.serial_number;
-    if (agvs_.find(agv_id) != agvs_.end())
+    for (const auto& spec : specs)
     {
-      result.skipped_already_onboarded.push_back(spec);
-      continue;
-    }
+      if (spec.manufacturer.empty() || spec.serial_number.empty())
+      {
+        result.failed.push_back(spec);
+        VDA5050_WARN(
+          "[VDA5050Master] onboard_agv_batch: empty manufacturer or serial "
+          "rejected");
+        continue;
+      }
 
-    agvs_[agv_id] = create_agv_locked_(
-      spec.manufacturer, spec.serial_number, spec.max_queue_size,
-      spec.drop_oldest);
-    result.onboarded.push_back(spec);
+      const std::string agv_id = spec.manufacturer + "/" + spec.serial_number;
+      if (agvs_.find(agv_id) != agvs_.end())
+      {
+        result.skipped_already_onboarded.push_back(spec);
+        continue;
+      }
+
+      auto agv = create_agv_locked_(
+        spec.manufacturer, spec.serial_number, spec.max_queue_size,
+        spec.drop_oldest);
+      agvs_[agv_id] = agv;
+      new_agvs.push_back(std::move(agv));
+      result.onboarded.push_back(spec);
+    }
   }
+
+  // Wire MQTT subscriptions outside agv_mutex_ — see onboard_agv() for
+  // the deadlock this avoids.
+  for (auto& agv : new_agvs) agv->setup_subscriptions();
 
   VDA5050_INFO(
     "[VDA5050Master] onboard_agv_batch: onboarded={} skipped={} failed={}",

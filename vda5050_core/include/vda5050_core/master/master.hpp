@@ -733,10 +733,12 @@ private:
 
   std::shared_ptr<AGV> get_agv_by_id(const std::string& agv_id) const;
 
-  // Build an AGV instance + wire its subscriptions. Caller must hold
-  // `agv_mutex_` and is responsible for inserting the returned
-  // shared_ptr into `agvs_`. Shared between `onboard_agv()` and
-  // `onboard_agv_batch()` so the per-AGV setup lives in one place.
+  // Build an AGV instance. Caller must hold `agv_mutex_` and is
+  // responsible for inserting the returned shared_ptr into `agvs_` and
+  // calling `setup_subscriptions()` AFTER releasing `agv_mutex_` —
+  // SUBSCRIBE can race with inbound PUBLISH on Paho's network thread,
+  // and the resulting on_state -> get_agv() callback would deadlock if
+  // we held the mutex while subscribing.
   std::shared_ptr<AGV> create_agv_locked_(
     const std::string& manufacturer, const std::string& serial_number,
     std::size_t max_queue_size, bool drop_oldest);

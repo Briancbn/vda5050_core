@@ -123,9 +123,7 @@ ros2 run vda5050_master_ros2 mock_fms --scenario happy-path
 **Master only** — exercise the 10 ROS 2 services with raw `ros2 service call` (no AGV side).
 ```bash
 ros2 run vda5050_master_ros2 example_master &
-ros2 service call /vda5050_master/onboard_agv \
-    vda5050_master_ros2/srv/OnboardAGV \
-    "{agv: {manufacturer: 'Manufacturer', serial_number: 'S001'}}"
+ros2 service call /vda5050_master/onboard_agv vda5050_master_ros2/srv/OnboardAGV "{agv: {manufacturer: 'Manufacturer', serial_number: 'S001'}}"
 ```
 - Expected response: `status: 0` (SUCCESS). A second call returns `status: 1` (ALREADY_ONBOARDED).
 - Try also: `get_loaded_map`, `get_master_broker_status`, `assign_order` (rejects pre-AGV with `decision: 2` AGV_OFFLINE).
@@ -139,11 +137,8 @@ ros2 run vda5050_master_ros2 mock_client --serial S001 --mfg Manufacturer    # T
 - From a 3rd terminal, dispatch a sample order:
   ```bash
   ORDER_DIR=$(ros2 pkg prefix vda5050_master_ros2)/share/vda5050_master_ros2/sample_data/orders
-  ros2 service call /vda5050_master/onboard_agv \
-      vda5050_master_ros2/srv/OnboardAGV \
-      "{agv: {manufacturer: 'Manufacturer', serial_number: 'S001'}}"
-  ros2 service call /vda5050_master/assign_order \
-      vda5050_master_ros2/srv/AssignOrder "$(cat $ORDER_DIR/happy_path.yaml)"
+  ros2 service call /vda5050_master/onboard_agv vda5050_master_ros2/srv/OnboardAGV "{agv: {manufacturer: 'Manufacturer', serial_number: 'S001'}}"
+  ros2 service call /vda5050_master/assign_order vda5050_master_ros2/srv/AssignOrder "$(cat $ORDER_DIR/happy_path.yaml)"
   ```
   Expected: `decision: 0` (ASSIGNED), master `[STATE]` log advances `last_node_id: N0 → N1`, `phase: COMPLETED`.
 - Fault-injection variants live under `sample_data/orders/`: `schema_reject.yaml`, `traversability_reject_*.yaml`, `stitch_base.yaml` + `stitch_update.yaml`.
@@ -179,7 +174,5 @@ Installed to `share/vda5050_master_ros2/sample_data/` for runtime use:
 
 ```bash
 ORDER_DIR=$(ros2 pkg prefix vda5050_master_ros2)/share/vda5050_master_ros2/sample_data/orders
-ros2 service call /vda5050_master/assign_order \
-    vda5050_master_ros2/srv/AssignOrder \
-    "$(cat $ORDER_DIR/happy_path.yaml)"
+ros2 service call /vda5050_master/assign_order vda5050_master_ros2/srv/AssignOrder "$(cat $ORDER_DIR/happy_path.yaml)"
 ```

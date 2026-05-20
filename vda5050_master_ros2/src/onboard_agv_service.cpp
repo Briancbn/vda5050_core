@@ -63,6 +63,10 @@ void OnboardAGVService::handle_request(
 {
   using vda5050_core::master::VDA5050Master;
 
+  VDA5050_INFO(
+    "[OnboardAGVService] ENTRY mfg={} sn={}", request->agv.manufacturer,
+    request->agv.serial_number);
+
   response->manufacturer = request->agv.manufacturer;
   response->serial_number = request->agv.serial_number;
 
@@ -76,7 +80,12 @@ void OnboardAGVService::handle_request(
   }
   spec.drop_oldest = request->agv.drop_oldest;
 
+  VDA5050_INFO("[OnboardAGVService] calling batcher_");
   auto result = batcher_({spec});
+  VDA5050_INFO(
+    "[OnboardAGVService] batcher_ returned: onboarded={} skipped={} failed={}",
+    result.onboarded.size(), result.skipped_already_onboarded.size(),
+    result.failed.size());
 
   if (!result.failed.empty())
   {
@@ -90,6 +99,9 @@ void OnboardAGVService::handle_request(
   {
     response->status = OnboardAGV::Response::SUCCESS;
   }
+
+  VDA5050_INFO(
+    "[OnboardAGVService] EXIT status={}", static_cast<int>(response->status));
 }
 
 }  // namespace vda5050_master_ros2

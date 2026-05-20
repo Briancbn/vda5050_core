@@ -324,8 +324,12 @@ int main(int argc, char** argv)
     map_path.empty() ? "(none — pre-send map check will reject orders)"
                      : map_path);
 
-  auto mqtt =
-    vda5050_core::transport::create_default_client(broker, "example_master");
+  // Per-PID client_id avoids broker-side session-takeover races when
+  // master is restarted within Paho's keepalive window (~60s). With a
+  // fixed id, the new connection forces the broker to evict the old
+  // session, and subscriptions can be dropped mid-handover.
+  auto mqtt = vda5050_core::transport::create_default_client(
+    broker, fmt::format("example_master-{}", ::getpid()));
   auto node = std::make_shared<rclcpp::Node>("example_master");
   auto master = std::make_shared<ExampleMaster>(mqtt, node, ns);
 
@@ -354,7 +358,11 @@ int main(int argc, char** argv)
     "Onboard AGVs via /{0}/onboard_agv; dispatch orders via /{0}/assign_order.",
     ns);
 
-  rclcpp::executors::SingleThreadedExecutor exec;
+  // MultiThreadedExecutor: lets service responses get delivered on
+  // a different thread than the one chewing on MQTT-driven callbacks
+  // (state/connection/heartbeat). Single-threaded starves the service
+  // response under heavy AGV traffic.
+  rclcpp::executors::MultiThreadedExecutor exec;
   exec.add_node(node);
   while (g_running && rclcpp::ok())
   {
