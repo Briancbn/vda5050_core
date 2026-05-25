@@ -53,7 +53,7 @@ TEST(PahoMqttClientTest, PublishSubscribe)
   std::atomic_int message_count{0};
 
   auto listener =
-    vda5050_core::transport::PahoMqttClient::make(broker, "listener");
+    vda5050_core::transport::PahoMqttClient::make_shared(broker, "listener");
   ASSERT_NO_THROW(listener->connect());
   ASSERT_TRUE(listener->connected());
   ASSERT_NO_THROW(listener->subscribe(
@@ -66,7 +66,7 @@ TEST(PahoMqttClientTest, PublishSubscribe)
     qos));
 
   auto talker =
-    vda5050_core::transport::create_default_client(broker, "talker");
+    vda5050_core::transport::create_default_client_shared(broker, "talker");
   ASSERT_NO_THROW(talker->connect());
   ASSERT_NO_THROW(talker->publish(topic, payload, qos));
 
@@ -87,8 +87,8 @@ TEST(PahoMqttClientTest, UnsubscribeStopsMessages)
 
   std::atomic_int message_count{0};
 
-  auto listener =
-    vda5050_core::transport::PahoMqttClient::make(broker, "unsub_listener");
+  auto listener = vda5050_core::transport::PahoMqttClient::make_unique(
+    broker, "unsub_listener");
   ASSERT_NO_THROW(listener->connect());
   ASSERT_NO_THROW(listener->subscribe(
     topic,
@@ -97,8 +97,8 @@ TEST(PahoMqttClientTest, UnsubscribeStopsMessages)
     },
     qos));
 
-  auto talker =
-    vda5050_core::transport::create_default_client(broker, "unsub_talker");
+  auto talker = vda5050_core::transport::create_default_client_unique(
+    broker, "unsub_talker");
   ASSERT_NO_THROW(talker->connect());
 
   // Publish first message and verify it is received
@@ -130,8 +130,8 @@ TEST(PahoMqttClient, LastWill)
   std::string payload = "hello";
   int qos = 0;
 
-  auto client =
-    vda5050_core::transport::PahoMqttClient::make(broker, "last_will_client");
+  auto client = vda5050_core::transport::PahoMqttClient::make_unique(
+    broker, "last_will_client");
   ASSERT_NO_THROW(client->set_will(topic, payload, qos));
   ASSERT_NO_THROW(client->connect());
   ASSERT_TRUE(client->connected());
@@ -147,7 +147,7 @@ TEST(PahoMqttClientTest, FailedConnectionRemainsDisconnected)
   // Use an invalid broker endpoint to simulate connection failure
   std::string invalid_broker = "tcp://invalid.broker.address:1883";
 
-  auto client = vda5050_core::transport::PahoMqttClient::make(
+  auto client = vda5050_core::transport::PahoMqttClient::make_shared(
     invalid_broker, "test_failed_connection");
 
   // Initial state should be disconnected

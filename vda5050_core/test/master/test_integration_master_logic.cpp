@@ -62,7 +62,7 @@ protected:
 
   std::shared_ptr<VDA5050Master> create_master()
   {
-    auto client = vda5050_core::transport::create_default_client(
+    auto client = vda5050_core::transport::create_default_client_shared(
       MQTT_BROKER, "master_logic_test_" + std::to_string(test_id_++));
     return std::make_shared<VDA5050Master>(client);
   }

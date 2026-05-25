@@ -62,7 +62,8 @@ public:
     (override));
   MOCK_METHOD(void, unsubscribe, (const std::string&), (override));
   MOCK_METHOD(
-    void, set_will, (const std::string&, const std::string&, int), (override));
+    void, set_will, (const std::string&, const std::string&, int, bool),
+    (override));
 };
 
 // Build a PreSendContext that satisfies all #16 readiness checks so

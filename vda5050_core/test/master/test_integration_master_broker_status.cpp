@@ -67,8 +67,8 @@ public:
   }
   void unsubscribe(const std::string& /*topic*/) override {}
   void set_will(
-    const std::string& /*topic*/, const std::string& /*message*/,
-    int /*qos*/) override
+    const std::string& /*topic*/, const std::string& /*message*/, int /*qos*/,
+    bool /*retain*/ = true) override
   {
   }
 

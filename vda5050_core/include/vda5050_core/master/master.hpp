@@ -82,7 +82,7 @@ public:
    *
    * Example usage:
    * @code
-   * auto client = vda5050_core::transport::create_default_client(broker, "master");
+   * auto client = vda5050_core::transport::create_default_client_shared(broker, "master");
    * auto master = std::make_shared<MyMaster>(client);
    * master->connect();
    * @endcode

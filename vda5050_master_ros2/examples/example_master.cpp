@@ -328,7 +328,7 @@ int main(int argc, char** argv)
   // master is restarted within Paho's keepalive window (~60s). With a
   // fixed id, the new connection forces the broker to evict the old
   // session, and subscriptions can be dropped mid-handover.
-  auto mqtt = vda5050_core::transport::create_default_client(
+  auto mqtt = vda5050_core::transport::create_default_client_shared(
     broker, fmt::format("example_master-{}", ::getpid()));
   auto node = std::make_shared<rclcpp::Node>("example_master");
   auto master = std::make_shared<ExampleMaster>(mqtt, node, ns);

@@ -64,7 +64,7 @@
 //   vda5050_execution::*               → vda5050_core::execution::*
 //   vda5050_core::mqtt_client::*       → vda5050_core::transport::*
 //   vda5050_types::*                   → vda5050_core::types::*
-//   create_default_client_unique()     → create_default_client() (shared_ptr)
+//   create_default_client_unique()     → create_default_client_shared() (shared_ptr)
 //   ProtocolAdapter::connect()         → MqttClientInterface::connect() (raw)
 //   ProtocolAdapter::set_will<T>()     → MqttClientInterface::set_will(topic,
 //                                          json, qos) (raw, before connect)
@@ -611,7 +611,7 @@ int main()
   // producing a disconnect ping-pong that breaks back-to-back scenario
   // runs. Encode {serial, pid} so two example_clients with the same
   // serial (e.g. two scenarios run in sequence) never collide.
-  auto mqtt_client = vda5050_core::transport::create_default_client(
+  auto mqtt_client = vda5050_core::transport::create_default_client_shared(
     "tcp://localhost:1883",
     fmt::format("vda5050_client-{}-{}", serial, getpid()));
 

@@ -74,7 +74,7 @@ inline bool is_broker_available()
 
   try
   {
-    auto client = vda5050_core::transport::create_default_client(
+    auto client = vda5050_core::transport::create_default_client_shared(
       MQTT_BROKER, "availability_check_client");
     client->connect();
     client->disconnect();

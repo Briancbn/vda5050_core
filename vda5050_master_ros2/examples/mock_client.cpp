@@ -386,7 +386,7 @@ MockClient::MockClient(const Cli& cli)
   // ProtocolAdapter::set_will<T> does NOT exist. The raw mqtt_->set_will
   // is what's actually wired into Paho. The will topic must match what
   // ProtocolAdapter would publish on for Connection.
-  mqtt_ = vda5050_core::transport::create_default_client(
+  mqtt_ = vda5050_core::transport::create_default_client_shared(
     cli_.broker, fmt::format("mock_client-{}", cli_.serial));
 
   const auto will_topic = fmt::format(

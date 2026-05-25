@@ -95,7 +95,8 @@ public:
     (override));
   MOCK_METHOD(void, unsubscribe, (const std::string&), (override));
   MOCK_METHOD(
-    void, set_will, (const std::string&, const std::string&, int), (override));
+    void, set_will, (const std::string&, const std::string&, int, bool),
+    (override));
 };
 
 vda5050_core::types::Connection make_online_connection()
@@ -209,7 +210,8 @@ protected:
       .Times(::testing::AnyNumber());
     EXPECT_CALL(*mock_, unsubscribe(::testing::_))
       .Times(::testing::AnyNumber());
-    EXPECT_CALL(*mock_, set_will(::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(
+      *mock_, set_will(::testing::_, ::testing::_, ::testing::_, ::testing::_))
       .Times(::testing::AnyNumber());
     EXPECT_CALL(
       *mock_, publish(::testing::_, ::testing::_, ::testing::_, ::testing::_))
@@ -573,7 +575,8 @@ protected:
       .Times(::testing::AnyNumber());
     EXPECT_CALL(*mock_, unsubscribe(::testing::_))
       .Times(::testing::AnyNumber());
-    EXPECT_CALL(*mock_, set_will(::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(
+      *mock_, set_will(::testing::_, ::testing::_, ::testing::_, ::testing::_))
       .Times(::testing::AnyNumber());
 
     // Count publishes whose topic ends with "/instantActions" — the
