@@ -50,45 +50,84 @@ vda5050_core::types::Load make_load(const std::string& id)
 }  // namespace
 
 // ============================================================================
-// reached_node
+// newly_reached_node
 // ============================================================================
 
-TEST(StateEventDetectorTest, ReachedNodeOnRisingEdge)
+TEST(StateEventDetectorTest, NewlyReachedNodeOnLastNodeAdvance)
 {
   vda5050_core::types::State prev;
-  prev.node_states = {make_node("n1", false)};
+  prev.last_node_id = "n0";
+  prev.last_node_sequence_id = 0;
   vda5050_core::types::State curr;
-  curr.node_states = {make_node("n1", true)};
+  curr.last_node_id = "n1";
+  curr.last_node_sequence_id = 2;
 
-  EXPECT_TRUE(reached_node(prev, curr, "n1"));
+  auto r = newly_reached_node(prev, curr);
+  ASSERT_TRUE(r.has_value());
+  EXPECT_EQ(r->node_id, "n1");
+  EXPECT_EQ(r->sequence_id, 2u);
 }
 
-TEST(StateEventDetectorTest, ReachedNodeFalseWhenAlreadyReleased)
+TEST(StateEventDetectorTest, NewlyReachedNodeOnSameIdNewSequence)
 {
   vda5050_core::types::State prev;
-  prev.node_states = {make_node("n1", true)};
+  prev.last_node_id = "n1";
+  prev.last_node_sequence_id = 2;
   vda5050_core::types::State curr;
-  curr.node_states = {make_node("n1", true)};
+  curr.last_node_id = "n1";  // same id revisited at a new sequence
+  curr.last_node_sequence_id = 4;
 
-  EXPECT_FALSE(reached_node(prev, curr, "n1"));
+  auto r = newly_reached_node(prev, curr);
+  ASSERT_TRUE(r.has_value());
+  EXPECT_EQ(r->node_id, "n1");
+  EXPECT_EQ(r->sequence_id, 4u);
 }
 
-TEST(StateEventDetectorTest, ReachedNodeFalseWhenNodeAbsent)
+TEST(StateEventDetectorTest, NewlyReachedNodeNulloptWhenUnchanged)
 {
   vda5050_core::types::State prev;
+  prev.last_node_id = "n1";
+  prev.last_node_sequence_id = 2;
   vda5050_core::types::State curr;
-  EXPECT_FALSE(reached_node(prev, curr, "n1"));
+  curr.last_node_id = "n1";
+  curr.last_node_sequence_id = 2;
+
+  EXPECT_FALSE(newly_reached_node(prev, curr).has_value());
 }
 
-TEST(StateEventDetectorTest, ReachedNodeOnlyForRequestedId)
+// Regression: a released-flag flip (master releasing a horizon node) is an
+// order update, NOT a traversal — must not report a reached node.
+TEST(StateEventDetectorTest, NewlyReachedNodeNulloptOnReleasedFlipOnly)
 {
   vda5050_core::types::State prev;
-  prev.node_states = {make_node("n1", false), make_node("n2", false)};
+  prev.last_node_id = "n1";
+  prev.last_node_sequence_id = 2;
+  prev.node_states = {make_node("n2", false)};
   vda5050_core::types::State curr;
-  curr.node_states = {make_node("n1", true), make_node("n2", false)};
+  curr.last_node_id = "n1";  // AGV has not advanced
+  curr.last_node_sequence_id = 2;
+  curr.node_states = {make_node("n2", true)};  // horizon -> base
 
-  EXPECT_TRUE(reached_node(prev, curr, "n1"));
-  EXPECT_FALSE(reached_node(prev, curr, "n2"));
+  EXPECT_FALSE(newly_reached_node(prev, curr).has_value());
+}
+
+TEST(StateEventDetectorTest, NewlyReachedNodeOnFirstStateWithNode)
+{
+  vda5050_core::types::State prev;  // default: empty last_node_id, seq 0
+  vda5050_core::types::State curr;
+  curr.last_node_id = "n0";
+  curr.last_node_sequence_id = 0;
+
+  auto r = newly_reached_node(prev, curr);
+  ASSERT_TRUE(r.has_value());
+  EXPECT_EQ(r->node_id, "n0");
+}
+
+TEST(StateEventDetectorTest, NewlyReachedNodeNulloptWhenNoLastNode)
+{
+  vda5050_core::types::State prev;
+  vda5050_core::types::State curr;  // both empty last_node_id
+  EXPECT_FALSE(newly_reached_node(prev, curr).has_value());
 }
 
 // ============================================================================
@@ -105,6 +144,31 @@ TEST(StateEventDetectorTest, ErrorsAppearedReturnsNewOnly)
   auto appeared = errors_appeared(prev, curr);
   ASSERT_EQ(appeared.size(), 1u);
   EXPECT_EQ(appeared[0].error_type, "E2");
+}
+
+TEST(StateEventDetectorTest, ErrorsDistinguishedByReferences)
+{
+  // Same type + description on different sources (error_references) must be
+  // treated as distinct, not collapsed.
+  auto err_on = [](const std::string& node) {
+    vda5050_core::types::Error e;
+    e.error_type = "blocked";
+    e.error_description = "path blocked";
+    vda5050_core::types::ErrorReference ref;
+    ref.reference_key = "nodeId";
+    ref.reference_value = node;
+    e.error_references = std::vector<vda5050_core::types::ErrorReference>{ref};
+    return e;
+  };
+  vda5050_core::types::State prev;
+  prev.errors = {err_on("n1")};
+  vda5050_core::types::State curr;
+  curr.errors = {err_on("n1"), err_on("n2")};
+
+  auto appeared = errors_appeared(prev, curr);
+  ASSERT_EQ(appeared.size(), 1u);
+  ASSERT_TRUE(appeared[0].error_references.has_value());
+  EXPECT_EQ(appeared[0].error_references->front().reference_value, "n2");
 }
 
 TEST(StateEventDetectorTest, ErrorsAppearedEmptyWhenNoNewErrors)

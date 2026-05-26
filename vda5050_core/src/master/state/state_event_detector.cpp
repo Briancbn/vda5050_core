@@ -25,28 +25,16 @@ namespace event {
 
 namespace {
 
-// Returns the released flag for node_id in the given State, or false
-// if the node is not in node_states.
-bool is_released(
-  const vda5050_core::types::State& state, std::string_view node_id)
-{
-  auto it = std::find_if(
-    state.node_states.begin(), state.node_states.end(),
-    [node_id](const vda5050_core::types::NodeState& n) {
-      return n.node_id == node_id;
-    });
-  return it != state.node_states.end() && it->released;
-}
-
 bool same_error(
   const vda5050_core::types::Error& a, const vda5050_core::types::Error& b)
 {
   return a.error_type == b.error_type &&
+         a.error_references == b.error_references &&
          a.error_description == b.error_description;
 }
 
-// Returns errors in `from` that are not in `against` (set difference
-// by error_type + error_description).
+// Errors in `from` absent from `against` (identity: type + references +
+// description).
 std::vector<vda5050_core::types::Error> errors_diff(
   const std::vector<vda5050_core::types::Error>& from,
   const std::vector<vda5050_core::types::Error>& against)
@@ -64,11 +52,18 @@ std::vector<vda5050_core::types::Error> errors_diff(
 
 }  // namespace
 
-bool reached_node(
+std::optional<ReachedNode> newly_reached_node(
   const vda5050_core::types::State& prev,
-  const vda5050_core::types::State& curr, std::string_view node_id)
+  const vda5050_core::types::State& curr)
 {
-  return is_released(curr, node_id) && !is_released(prev, node_id);
+  if (curr.last_node_id.empty()) return std::nullopt;
+  if (
+    curr.last_node_id == prev.last_node_id &&
+    curr.last_node_sequence_id == prev.last_node_sequence_id)
+  {
+    return std::nullopt;
+  }
+  return ReachedNode{curr.last_node_id, curr.last_node_sequence_id};
 }
 
 std::vector<vda5050_core::types::Error> errors_appeared(

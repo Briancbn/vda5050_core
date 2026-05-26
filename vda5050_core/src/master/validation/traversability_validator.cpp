@@ -79,13 +79,12 @@ void validate_action_against_factsheet(
       {});
   }
 
-  // Each Action.action_parameters[].key must be a key declared by the
-  // matched AGVAction.action_parameters (when AGV declares parameters).
-  if (
-    action.action_parameters.has_value() &&
-    agv_action->action_parameters.has_value())
+  if (!agv_action->action_parameters.has_value()) return;
+  const auto& declared = agv_action->action_parameters.value();
+
+  // Each supplied parameter key must be declared by the AGVAction.
+  if (action.action_parameters.has_value())
   {
-    const auto& declared = agv_action->action_parameters.value();
     for (const auto& p : action.action_parameters.value())
     {
       auto it = std::find_if(
@@ -101,6 +100,24 @@ void validate_action_against_factsheet(
             "'.",
           {});
       }
+    }
+  }
+
+  // Each required (non-optional) declared parameter must be supplied.
+  for (const auto& d : declared)
+  {
+    if (d.is_optional.value_or(false)) continue;
+    const bool present =
+      action.action_parameters.has_value() &&
+      std::any_of(
+        action.action_parameters->begin(), action.action_parameters->end(),
+        [&](const auto& p) { return p.key == d.key; });
+    if (!present)
+    {
+      add_error(
+        "Action '" + action.action_type + "' is missing required parameter '" +
+          d.key + "'.",
+        {});
     }
   }
 }
@@ -143,6 +160,23 @@ void validate_reachability(
   const auto& np = first.node_position.value();
   const auto& ap = state.agv_position.value();
 
+  if (!ap.position_initialized)
+  {
+    add_error(
+      "Cannot determine reachability: AGV position is not initialized.",
+      {{::vda5050_core::errors::RefNodeId, first.node_id}});
+    return;
+  }
+
+  if (ap.map_id != np.map_id)
+  {
+    add_error(
+      "AGV is on a different map than the first node (AGV map '" + ap.map_id +
+        "', node map '" + np.map_id + "').",
+      {{::vda5050_core::errors::RefNodeId, first.node_id}});
+    return;
+  }
+
   // Conservative default for missing allowed_deviation_x_y: 0.0 (must be
   // exactly on the node). Spec doesn't mandate a default.
   const double allowed = np.allowed_deviation_x_y.value_or(0.0);
@@ -177,11 +211,6 @@ void check_limit(
   }
 }
 
-// Default position-deviation tolerance used when a Map node does not
-// declare allowed_deviation_xy. Conservative half-metre — matches the
-// sample warehouse map's tolerance.
-constexpr double kDefaultMapPositionDeviation = 0.5;
-
 // Map-integrity sub-check (Task #39): cross-check Order graph against
 // the master's loaded topology map. Pre-condition: ctx.loaded_map is
 // non-null (pre_send_validator's no-map gate guarantees this).
@@ -206,8 +235,7 @@ void validate_map_integrity_locked(
     }
     if (!node.node_position.has_value()) continue;
     const auto& np = node.node_position.value();
-    const double allowed =
-      mn->allowed_deviation_xy.value_or(kDefaultMapPositionDeviation);
+    const double allowed = mn->allowed_deviation_xy.value_or(0.0);
     const double dx = np.x - mn->x;
     const double dy = np.y - mn->y;
     const double distance = std::hypot(dx, dy);

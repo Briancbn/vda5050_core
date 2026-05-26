@@ -684,13 +684,10 @@ void AGV::handle_state(const vda5050_core::types::State& msg)
     {
       const auto& prev = *prev_state_;
 
-      // Per-node "reached" events.
-      for (const auto& node : msg.node_states)
+      // Node reached (lastNodeId/sequence advanced vs the previous State).
+      if (auto reached = event::newly_reached_node(prev, msg))
       {
-        if (event::reached_node(prev, msg, node.node_id))
-        {
-          p->on_node_reached(agv_id_, node.node_id);
-        }
+        p->on_node_reached(agv_id_, reached->node_id);
       }
 
       // Errors that newly appeared.

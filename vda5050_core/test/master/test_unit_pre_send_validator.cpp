@@ -194,15 +194,14 @@ TEST(PreSendValidatorTest, AbsentLastStateRejectedAndShortCircuits)
 // Operating mode (strict AUTOMATIC for V0)
 // ============================================================================
 
-TEST(PreSendValidatorTest, SemiAutomaticModeRejected)
+TEST(PreSendValidatorTest, SemiAutomaticModeAccepted)
 {
   auto ctx = make_ready_context();
   ctx.last_state->operating_mode =
     vda5050_core::types::OperatingMode::SEMIAUTOMATIC;
   auto res = validate_pre_send(ctx);
-  EXPECT_FALSE(static_cast<bool>(res));
-  EXPECT_TRUE(AllErrorsHavePreSendType(res));
-  EXPECT_TRUE(AnyErrorMentions(res, "operating_mode"));
+  EXPECT_TRUE(static_cast<bool>(res));
+  EXPECT_TRUE(res.errors.empty());
 }
 
 TEST(PreSendValidatorTest, ManualModeRejected)

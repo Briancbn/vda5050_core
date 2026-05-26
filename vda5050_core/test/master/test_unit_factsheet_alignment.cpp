@@ -89,17 +89,16 @@ TEST(FactsheetAlignmentTest, AgvSpeedEqualsEdgeMax_NoFindings)
   EXPECT_FALSE(r.has_error());
 }
 
-TEST(FactsheetAlignmentTest, AgvSpeedBelowEdgeMax_ReturnsError)
+TEST(FactsheetAlignmentTest, AgvSpeedBelowEdgeMax_ReturnsWarning)
 {
   auto m = make_map_with_edge_max_speed(2.0);
   auto fs = make_factsheet_with_speed(1.5);
 
   auto r = check_factsheet_alignment(m, fs);
-  EXPECT_TRUE(r.has_error());
+  EXPECT_FALSE(r.has_error());
   ASSERT_EQ(r.findings.size(), 1u);
-  EXPECT_EQ(r.findings[0].severity, AlignmentSeverity::ERROR);
+  EXPECT_EQ(r.findings[0].severity, AlignmentSeverity::WARNING);
   EXPECT_EQ(r.findings[0].code, "SpeedExceedsCapability");
-  EXPECT_TRUE(has_finding_with_code(r, "SpeedExceedsCapability"));
 }
 
 TEST(FactsheetAlignmentTest, EdgeWithoutMaxSpeed_SkippedFromCheck)
@@ -150,7 +149,7 @@ TEST(FactsheetAlignmentTest, MultipleEdgesExceeded_AllReported)
 
   auto fs = make_factsheet_with_speed(1.0);
   auto r = check_factsheet_alignment(m, fs);
-  EXPECT_TRUE(r.has_error());
+  EXPECT_FALSE(r.has_error());
   EXPECT_EQ(r.findings.size(), 2u);
 }
 
@@ -165,7 +164,7 @@ TEST(FactsheetAlignmentTest, EmptyMap_NoFindings)
   m.nodes = {n};
   // No edges — nothing to align.
 
-  auto fs = make_factsheet_with_speed(0.0);
+  auto fs = make_factsheet_with_speed(1.0);
   auto r = check_factsheet_alignment(m, fs);
   EXPECT_TRUE(r.findings.empty());
   EXPECT_FALSE(r.has_error());

@@ -86,6 +86,7 @@ vda5050_core::types::Factsheet make_factsheet()
     vda5050_core::types::ActionScope::INSTANT};
   vda5050_core::types::ActionParameterFactsheet param;
   param.key = "loadId";
+  param.is_optional = true;
   supported.action_parameters =
     std::vector<vda5050_core::types::ActionParameterFactsheet>{param};
   fs.protocol_features.agv_actions = {supported};

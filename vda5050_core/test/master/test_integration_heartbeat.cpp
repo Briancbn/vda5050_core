@@ -38,41 +38,14 @@ public:
   : HeartbeatListener(id, heartbeat_interval, disconnection_callback),
     time_to_skip_(time_to_skip)
   {
-    // ASSERT_NEAR(
-    //   std::chrono::duration_cast<std::chrono::seconds>(
-    //     get_current_time().time_since_epoch())
-    //     .count(),
-    //   std::chrono::duration_cast<std::chrono::seconds>(
-    //     std::chrono::steady_clock::now().time_since_epoch())
-    //     .count(),
-    //   time_to_skip);
-
-    // ASSERT_NEAR(
-    //   std::chrono::duration_cast<std::chrono::seconds>(
-    //     get_last_connection_report().time_since_epoch())
-    //     .count(),
-    //   std::chrono::duration_cast<std::chrono::seconds>(
-    //     std::chrono::steady_clock::now().time_since_epoch())
-    //     .count(),
-    //   time_to_skip);
-
-    // ASSERT_NEAR(
-    //   std::chrono::duration_cast<std::chrono::seconds>(
-    //     get_last_connection_report().time_since_epoch())
-    //     .count(),
-    //   std::chrono::duration_cast<std::chrono::seconds>(
-    //     get_current_time().time_since_epoch())
-    //     .count(),
-    //   1e9);
-
     start_connection_heartbeat();
   }
 
-  std::chrono::system_clock::time_point get_current_time() override
+  std::chrono::steady_clock::time_point get_current_time() override
   {
     VDA5050_INFO(
       "get_current_time with skip of " + std::to_string(time_to_skip_));
-    return std::chrono::system_clock::now() +
+    return std::chrono::steady_clock::now() +
            std::chrono::seconds(time_to_skip_);
   }
 
@@ -137,7 +110,7 @@ TEST(HeartbeatListenerTest, HeartbeatReceivedNoTimeout)
       hb_listener.get_last_connection_report().time_since_epoch())
       .count(),
     std::chrono::duration_cast<std::chrono::seconds>(
-      std::chrono::system_clock::now().time_since_epoch())
+      std::chrono::steady_clock::now().time_since_epoch())
       .count(),
     vda5050_core::master::ConnectionHeartbeatInterval - 1);
 

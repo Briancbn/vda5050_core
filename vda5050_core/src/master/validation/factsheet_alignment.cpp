@@ -36,11 +36,20 @@ FactsheetAlignmentResult check_factsheet_alignment(
 {
   FactsheetAlignmentResult result;
 
-  // Rule "SpeedExceedsCapability": every map edge with a declared
-  // max_speed must be reachable by an AGV whose factsheet declares
-  // speed_max >= that limit. We check the strictest case: any edge
-  // whose max_speed exceeds the AGV's speed_max.
   const double agv_speed_max = factsheet.physical_parameters.speed_max;
+  const double agv_speed_min = factsheet.physical_parameters.speed_min;
+
+  // No usable speed capability reported (default-constructed or factsheet not
+  // yet received) — skip rather than flag every edge.
+  if (agv_speed_max <= 0.0)
+  {
+    result.findings.push_back(
+      {AlignmentSeverity::WARNING, "SpeedCapabilityUnknown",
+       "AGV factsheet reports no usable physical_parameters.speed_max; "
+       "edge speed alignment was not checked."});
+    return result;
+  }
+
   for (const auto& edge : map.edges)
   {
     if (!edge.max_speed.has_value()) continue;
@@ -52,7 +61,16 @@ FactsheetAlignmentResult check_factsheet_alignment(
           << " m/s exceeds AGV factsheet physical_parameters.speed_max="
           << agv_speed_max << " m/s.";
       result.findings.push_back(
-        {AlignmentSeverity::ERROR, "SpeedExceedsCapability", oss.str()});
+        {AlignmentSeverity::WARNING, "SpeedExceedsCapability", oss.str()});
+    }
+    if (agv_speed_min > 0.0 && edge_max < agv_speed_min)
+    {
+      std::ostringstream oss;
+      oss << "Edge '" << edge.edge_id << "' max_speed=" << edge_max
+          << " m/s is below AGV factsheet physical_parameters.speed_min="
+          << agv_speed_min << " m/s.";
+      result.findings.push_back(
+        {AlignmentSeverity::WARNING, "SpeedBelowMinimum", oss.str()});
     }
   }
 

@@ -38,13 +38,35 @@ void add_error(
 
 // Decode MapStatus from spec wording (string in JSON). Defaults to
 // ENABLED when the field is absent — a freshly-loaded map is the
-// default-active map.
-MapStatus parse_map_status(const nlohmann::json& info)
+// default-active map. A present value must be a recognized string so a
+// config typo surfaces instead of silently running enabled.
+bool parse_map_status(
+  const nlohmann::json& info, MapStatus& out, std::string& reason)
 {
-  if (!info.contains("map_status")) return MapStatus::ENABLED;
+  if (!info.contains("map_status"))
+  {
+    out = MapStatus::ENABLED;
+    return true;
+  }
+  if (!info.at("map_status").is_string())
+  {
+    reason = "map_info.map_status is present but not a string.";
+    return false;
+  }
   const auto s = info.at("map_status").get<std::string>();
-  if (s == "DISABLED") return MapStatus::DISABLED;
-  return MapStatus::ENABLED;
+  if (s == "ENABLED")
+  {
+    out = MapStatus::ENABLED;
+    return true;
+  }
+  if (s == "DISABLED")
+  {
+    out = MapStatus::DISABLED;
+    return true;
+  }
+  reason = "map_info.map_status has unrecognized value '" + s +
+           "' (expected 'ENABLED' or 'DISABLED').";
+  return false;
 }
 
 bool parse_map_info(
@@ -74,7 +96,12 @@ bool parse_map_info(
   }
   info.map_id = mi.at("map_id").get<std::string>();
   info.map_version = mi.at("map_version").get<std::string>();
-  info.map_status = parse_map_status(mi);
+  std::string status_reason;
+  if (!parse_map_status(mi, info.map_status, status_reason))
+  {
+    add_error(errors, MapLoadErrorType::INVALID_FIELD_VALUE, status_reason);
+    return false;
+  }
   if (mi.contains("map_descriptor") && mi.at("map_descriptor").is_string())
   {
     info.map_descriptor = mi.at("map_descriptor").get<std::string>();
@@ -195,7 +222,9 @@ MapLoadResult load_from_file(const std::string& path)
   return load_from_json(parsed, path);
 }
 
-MapLoadResult load_from_json(
+namespace {
+
+MapLoadResult parse_map_document(
   const nlohmann::json& json, const std::string& source_path)
 {
   MapLoadResult result;
@@ -296,6 +325,26 @@ MapLoadResult load_from_json(
 
   result.map = std::move(map);
   return result;
+}
+
+}  // namespace
+
+MapLoadResult load_from_json(
+  const nlohmann::json& json, const std::string& source_path)
+{
+  try
+  {
+    return parse_map_document(json, source_path);
+  }
+  catch (const nlohmann::json::exception& e)
+  {
+    MapLoadResult result;
+    add_error(
+      result.errors, MapLoadErrorType::JSON_PARSE_ERROR,
+      std::string("Unexpected JSON error while parsing map config: ") +
+        e.what());
+    return result;
+  }
 }
 
 }  // namespace vda5050_core::master

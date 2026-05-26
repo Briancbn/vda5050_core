@@ -18,7 +18,6 @@
 
 #include "vda5050_core/master/heartbeat.hpp"
 
-#include <cmath>
 #include <utility>
 
 #include "vda5050_core/logger/logger.hpp"
@@ -31,7 +30,7 @@ HeartbeatListener::HeartbeatListener(
 : id_(id),
   heartbeat_interval_(heartbeat_interval),
   state_(HeartbeatState::STOPPED),
-  last_connection_report_(std::chrono::system_clock::now()),
+  last_connection_report_(std::chrono::steady_clock::now()),
   disconnection_callback_(std::move(disconnection_callback))
 {
 }
@@ -52,15 +51,12 @@ void HeartbeatListener::start_connection_heartbeat()
     return;
   }
 
-  // Reset the last-report timestamp so a long gap between construction
-  // (or previous stop) and start doesn't fire an immediate timeout.
-  // Use std::chrono::system_clock::now() directly (not get_current_time())
-  // because get_current_time() is virtual and may be mocked for testing
-  // — tests inject a time skew there to simulate timeouts; resetting the
-  // timestamp via the same path would defeat their setup.
+  // Reset last-report so a long gap before start doesn't fire an immediate
+  // timeout. Use now() directly, not the virtual get_current_time() (tests
+  // mock that to inject skew; resetting through it would defeat their setup).
   {
     std::lock_guard<std::mutex> ts_lock(last_connection_report_mutex_);
-    last_connection_report_ = std::chrono::system_clock::now();
+    last_connection_report_ = std::chrono::steady_clock::now();
   }
 
   VDA5050_INFO("Starting Connection heartbeat listener");
@@ -104,7 +100,6 @@ void HeartbeatListener::stop_connection_heartbeat()
 
 void HeartbeatListener::received_connection()
 {
-  // Check state with proper synchronization
   if (get_state() != HeartbeatState::RUNNING)
   {
     VDA5050_DEBUG("Connection heartbeat not running, ignored...");
@@ -116,7 +111,7 @@ void HeartbeatListener::received_connection()
   message_received_.notify_all();
 }
 
-std::chrono::system_clock::time_point
+std::chrono::steady_clock::time_point
 HeartbeatListener::get_last_connection_report()
 {
   std::lock_guard<std::mutex> lock(last_connection_report_mutex_);
@@ -129,9 +124,9 @@ HeartbeatState HeartbeatListener::get_state()
   return state_;
 }
 
-std::chrono::system_clock::time_point HeartbeatListener::get_current_time()
+std::chrono::steady_clock::time_point HeartbeatListener::get_current_time()
 {
-  return std::chrono::system_clock::now();
+  return std::chrono::steady_clock::now();
 }
 
 int HeartbeatListener::get_check_interval()
@@ -139,22 +134,9 @@ int HeartbeatListener::get_check_interval()
   return heartbeat_interval_;
 }
 
-bool HeartbeatListener::is_stop_requested()
-{
-  std::lock_guard<std::mutex> lock(state_mutex_);
-  // The listen thread should exit unless the listener is actively
-  // RUNNING. Treating both STOPPING and STOPPED as "stop" closes a
-  // race in concurrent stop_connection_heartbeat() calls: a second
-  // stopper can advance state from STOPPING → STOPPED before the
-  // first stopper's join sees the thread exit. With STOPPING-only,
-  // the thread observes STOPPED, doesn't recognize it as a stop, and
-  // loops forever.
-  return state_ != HeartbeatState::RUNNING;
-}
-
 bool HeartbeatListener::is_timeout()
 {
-  std::chrono::system_clock::time_point current_time = get_current_time();
+  std::chrono::steady_clock::time_point current_time = get_current_time();
   int time_since_last_connection_report;
   {
     std::lock_guard<std::mutex> lock(last_connection_report_mutex_);
@@ -164,7 +146,7 @@ bool HeartbeatListener::is_timeout()
         .count();
   }
 
-  if (std::abs(time_since_last_connection_report) > heartbeat_interval_)
+  if (time_since_last_connection_report > heartbeat_interval_)
   {
     VDA5050_WARN(
       "[" + id_ + "] Connection heartbeat timeout after " +
@@ -177,34 +159,26 @@ bool HeartbeatListener::is_timeout()
 
 void HeartbeatListener::listen()
 {
-  // Track whether we've fired the timeout callback for the current
-  // "timeout episode". Reset when a heartbeat is received and
-  // is_timeout() returns false again. The thread keeps spinning until
-  // an explicit stop_connection_heartbeat() arrives — exiting on
-  // first timeout would wedge the listener (state stuck at RUNNING
-  // with a finished thread, refusing future starts).
+  // One callback per timeout episode, reset on recovery; the thread spins
+  // until an explicit stop.
   bool timeout_fired = false;
 
-  while (!is_stop_requested())
+  while (true)
   {
-    std::unique_lock<std::mutex> lock(check_lock_);
-    // Predicate-form wait_for: returns immediately if a stop was
-    // requested before this thread reached wait_for (closes a lost-
-    // wakeup race where stop_connection_heartbeat's notify_all fires
-    // before the listener entered wait_for, leaving the listener
-    // stuck waiting the full heartbeat_interval). Without the
-    // predicate, teardown of a HeartbeatListener constructed with
-    // interval=N takes up to N seconds under CPU contention, which
-    // can push parallel test binaries past their CTest timeout.
-    message_received_.wait_for(
-      lock, std::chrono::seconds(get_check_interval()),
-      [this] { return is_stop_requested(); });
-
-    // Check if shutdown was requested while waiting
-    if (is_stop_requested())
     {
-      VDA5050_DEBUG("[" + id_ + "] Shutdown requested, exiting listen loop");
-      return;
+      // Wait on state_mutex_ (which guards state_) so stop_connection_
+      // heartbeat()'s state change + notify can't be lost; the timeout also
+      // bounds the poll interval. Any non-RUNNING state means stop.
+      std::unique_lock<std::mutex> lock(state_mutex_);
+      message_received_.wait_for(
+        lock, std::chrono::seconds(get_check_interval()),
+        [this] { return state_ != HeartbeatState::RUNNING; });
+
+      if (state_ != HeartbeatState::RUNNING)
+      {
+        VDA5050_DEBUG("[" + id_ + "] Shutdown requested, exiting listen loop");
+        return;
+      }
     }
 
     if (is_timeout())
@@ -218,7 +192,6 @@ void HeartbeatListener::listen()
     }
     else
     {
-      // Recovered — fire callback again on next timeout episode.
       timeout_fired = false;
     }
   }

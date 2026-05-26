@@ -19,7 +19,9 @@
 #ifndef VDA5050_CORE__MASTER__STATE__STATE_EVENT_DETECTOR_HPP_
 #define VDA5050_CORE__MASTER__STATE__STATE_EVENT_DETECTOR_HPP_
 
-#include <string_view>
+#include <cstdint>
+#include <optional>
+#include <string>
 #include <vector>
 
 #include "vda5050_core/types/error.hpp"
@@ -28,92 +30,46 @@
 namespace vda5050_core::master {
 namespace event {
 
-// =============================================================================
-// State event detection — pure prev/curr diffs.
-// =============================================================================
-//
-// State message trigger list:
-//   • Driving over a node              → reached_node
-//   • New base request                 → new_base_requested
-//   • Switching the operating mode     → mode_changed
-//   • Errors or warnings               → errors_appeared / errors_resolved
-//   • Change in the "driving" field    → driving_changed
-//   • Paused field                     → paused_changed
-//   • Load status changes              → loads_changed
-//
-// Out of scope (handled elsewhere):
-//   • action_states transitions        → ActionLifecycleTracker
-//   • Order id / order_update_id       → OrderLifecycleManager
-//   • Error level (WARNING vs FATAL)   → error classification layer
+/// A node the AGV reports as reached (lastNodeId + lastNodeSequenceId).
+struct ReachedNode
+{
+  std::string node_id;
+  uint32_t sequence_id;
+};
 
-/**
- * @brief True iff `node_id` transitioned to `released == true`.
- *
- * "Released" is the VDA5050 flag the AGV sets when it has executed
- * the node. Rising edge: prev had it absent or unreleased; curr has
- * it released.
- */
-bool reached_node(
+/// Node just reached: lastNodeId/sequence advanced vs prev; else nullopt.
+std::optional<ReachedNode> newly_reached_node(
   const vda5050_core::types::State& prev,
-  const vda5050_core::types::State& curr, std::string_view node_id);
+  const vda5050_core::types::State& curr);
 
-/**
- * @brief Errors present in curr but not in prev.
- *
- * Compared by (error_type, error_description) since VDA5050 errors
- * don't carry stable IDs.
- */
+/// Errors in curr but not prev.
 std::vector<vda5050_core::types::Error> errors_appeared(
   const vda5050_core::types::State& prev,
   const vda5050_core::types::State& curr);
 
-/**
- * @brief Errors present in prev but no longer in curr.
- *
- * Symmetric counterpart to errors_appeared. Captures the spec's
- * "self-resolving WARNING" recovery (e.g., field violation cleared).
- */
+/// Errors in prev but no longer in curr.
 std::vector<vda5050_core::types::Error> errors_resolved(
   const vda5050_core::types::State& prev,
   const vda5050_core::types::State& curr);
 
-/**
- * @brief Rising edge: new_base_request transitioned false → true.
- *
- * Idempotent on sustained "true" — only fires once per request. The
- * flag is `optional<bool>` per VDA5050; absent is treated as false.
- */
+/// Rising edge: new_base_request false → true (absent = false).
 bool new_base_requested(
   const vda5050_core::types::State& prev,
   const vda5050_core::types::State& curr);
 
-/**
- * @brief True iff curr.operating_mode != prev.operating_mode.
- */
 bool mode_changed(
   const vda5050_core::types::State& prev,
   const vda5050_core::types::State& curr);
 
-/**
- * @brief True iff curr.paused != prev.paused (any flip in either
- * direction). The `paused` field is `optional<bool>`; absent is
- * treated as false.
- */
+/// curr.paused != prev.paused (absent = false).
 bool paused_changed(
   const vda5050_core::types::State& prev,
   const vda5050_core::types::State& curr);
 
-/**
- * @brief True iff curr.driving != prev.driving.
- */
 bool driving_changed(
   const vda5050_core::types::State& prev,
   const vda5050_core::types::State& curr);
 
-/**
- * @brief True iff curr.loads != prev.loads (any change in the loads
- * vector — count, contents, or both).
- */
 bool loads_changed(
   const vda5050_core::types::State& prev,
   const vda5050_core::types::State& curr);

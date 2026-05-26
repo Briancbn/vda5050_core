@@ -25,6 +25,26 @@
 
 namespace vda5050_core::master {
 
+namespace {
+
+const char* agv_state_name(AGVState state)
+{
+  switch (state)
+  {
+    case AGVState::STATE_UNKNOWN:
+      return "STATE_UNKNOWN";
+    case AGVState::AVAILABLE:
+      return "AVAILABLE";
+    case AGVState::UNAVAILABLE:
+      return "UNAVAILABLE";
+    case AGVState::ERROR:
+      return "ERROR";
+  }
+  return "UNKNOWN";
+}
+
+}  // namespace
+
 vda5050_core::order_utils::ValidationResult validate_pre_send(
   const PreSendContext& ctx)
 {
@@ -56,22 +76,14 @@ vda5050_core::order_utils::ValidationResult validate_pre_send(
     add_error("AGV connection_status is not ONLINE");
   }
 
-  // Master-internal operational state. ERROR / STATE_UNKNOWN both
-  // indicate the AGV is not in a position to receive new orders:
-  //   - ERROR: AGV has reported a fatal error
-  //   - STATE_UNKNOWN: AGV's state-topic heartbeat exceeded 30s
-  //     (Task #28). Sending orders to a silent AGV is wasteful and
-  //     potentially unsafe — the order would publish but never be
-  //     acknowledged.
-  // UNAVAILABLE (set on connection loss) is already rejected by the
-  // connection-status guard above.
-  if (
-    ctx.operational_state == AGVState::ERROR ||
-    ctx.operational_state == AGVState::STATE_UNKNOWN)
+  // Master-internal operational state. Only AVAILABLE is fit to receive
+  // orders; ERROR / STATE_UNKNOWN / UNAVAILABLE are all rejected (fail-safe
+  // — any future state is rejected by default).
+  if (ctx.operational_state != AGVState::AVAILABLE)
   {
     add_error(
-      std::string("AGV operational_state is ") +
-      (ctx.operational_state == AGVState::ERROR ? "ERROR" : "STATE_UNKNOWN"));
+      std::string("AGV operational_state is not AVAILABLE (") +
+      agv_state_name(ctx.operational_state) + ")");
   }
 
   // Need a State message before we can reason about mode or position.
@@ -81,14 +93,25 @@ vda5050_core::order_utils::ValidationResult validate_pre_send(
     return res;  // remaining checks need last_state
   }
 
-  // Per VDA5050 v2.0.0 §6.10: only AUTOMATIC has master under "full control".
-  // SEMIAUTOMATIC is technically permissive, but task tracker locks strict
-  // AUTOMATIC for V0.
+  // AUTOMATIC and SEMIAUTOMATIC both have the master in control; the other
+  // modes (MANUAL / SERVICE / TEACHIN) do not.
   if (
     ctx.last_state->operating_mode !=
-    vda5050_core::types::OperatingMode::AUTOMATIC)
+      vda5050_core::types::OperatingMode::AUTOMATIC &&
+    ctx.last_state->operating_mode !=
+      vda5050_core::types::OperatingMode::SEMIAUTOMATIC)
   {
-    add_error("AGV operating_mode is not AUTOMATIC");
+    add_error("AGV operating_mode is not AUTOMATIC or SEMIAUTOMATIC");
+  }
+
+  if (ctx.last_state->paused.value_or(false))
+  {
+    add_error("AGV is paused");
+  }
+
+  if (ctx.last_state->safety_state.e_stop != vda5050_core::types::EStop::NONE)
+  {
+    add_error("AGV e-stop is engaged");
   }
 
   // Per VM-VDA-6-6-1-3 (BACKLOG): reject when AGV's position is not
