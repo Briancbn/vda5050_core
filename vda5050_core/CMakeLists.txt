@@ -31,7 +31,7 @@ target_include_directories(vda5050_types
 )
 
 # JSON Utils
-option(ENABLE_ROS2 "Enable ROS 2 message support in JSON utilities" OFF)
+option(ENABLE_ROS2 "Enable ROS 2 message support in JSON utilities" ON)
 if(ENABLE_ROS2)
   message(STATUS "Building vda5050_json_utils with ROS 2 support")
   find_package(vda5050_interfaces REQUIRED)
