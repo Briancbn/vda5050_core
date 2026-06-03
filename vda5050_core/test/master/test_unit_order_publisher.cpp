@@ -188,7 +188,7 @@ TEST(OrderPublisherTest, MalformedOrderRejectedAtSchema)
   // Order with empty header.version → schema validator rejects.
   auto mock = std::make_shared<MockMqttClient>();
   auto adapter = vda5050_core::execution::ProtocolAdapter::make(
-    mock, "rmf2", "v2", "ACME", "AGV001");
+    mock, "uagv", "v2", "ACME", "AGV001");
   vda5050_core::master::OrderPublisher publisher;
 
   vda5050_core::types::Order malformed;
@@ -229,7 +229,7 @@ TEST(OrderPublisherTest, NotReadyAGVRejectedAtPreSend)
   // PreSendContext with OFFLINE connection → PreSend validator rejects.
   auto mock = std::make_shared<MockMqttClient>();
   auto adapter = vda5050_core::execution::ProtocolAdapter::make(
-    mock, "rmf2", "v2", "ACME", "AGV001");
+    mock, "uagv", "v2", "ACME", "AGV001");
   vda5050_core::master::OrderPublisher publisher;
 
   vda5050_core::types::Order order;
@@ -272,7 +272,7 @@ TEST(OrderPublisherTest, GraphInvalidOrderShortCircuitsAndReportsGraphError)
 {
   auto mock = std::make_shared<MockMqttClient>();
   auto adapter = vda5050_core::execution::ProtocolAdapter::make(
-    mock, "rmf2", "v2", "ACME", "AGV001");
+    mock, "uagv", "v2", "ACME", "AGV001");
   vda5050_core::master::OrderPublisher publisher;
 
   // Build a graph-invalid Order: 2 nodes but 0 edges → violates
@@ -355,7 +355,7 @@ TEST(OrderPublisherTest, FreshOrderNoActiveTakesGraphPath)
   // a valid standalone graph). Publish succeeds.
   auto mock = std::make_shared<MockMqttClient>();
   auto adapter = vda5050_core::execution::ProtocolAdapter::make(
-    mock, "rmf2", "v2", "ACME", "AGV001");
+    mock, "uagv", "v2", "ACME", "AGV001");
   vda5050_core::master::OrderPublisher publisher;
   auto v0 = make_active_v0();
 
@@ -376,7 +376,7 @@ TEST(OrderPublisherTest, StitchedUpdateValidatedViaCombineOrder)
   // V0's last released (N1@2) and the extension is past the horizon.
   auto mock = std::make_shared<MockMqttClient>();
   auto adapter = vda5050_core::execution::ProtocolAdapter::make(
-    mock, "rmf2", "v2", "ACME", "AGV001");
+    mock, "uagv", "v2", "ACME", "AGV001");
   vda5050_core::master::OrderPublisher publisher;
 
   EXPECT_CALL(
@@ -394,7 +394,7 @@ TEST(OrderPublisherTest, StitchedUpdateBackwardUpdateIdRejected)
   // combine_order rejects update_update_id <= active.order_update_id.
   auto mock = std::make_shared<MockMqttClient>();
   auto adapter = vda5050_core::execution::ProtocolAdapter::make(
-    mock, "rmf2", "v2", "ACME", "AGV001");
+    mock, "uagv", "v2", "ACME", "AGV001");
   vda5050_core::master::OrderPublisher publisher;
   EXPECT_CALL(
     *mock, publish(::testing::_, ::testing::_, ::testing::_, ::testing::_))
@@ -416,7 +416,7 @@ TEST(OrderPublisherTest, StitchedUpdateStitchNodeMismatchRejected)
   // last released base node (stitch identity rule).
   auto mock = std::make_shared<MockMqttClient>();
   auto adapter = vda5050_core::execution::ProtocolAdapter::make(
-    mock, "rmf2", "v2", "ACME", "AGV001");
+    mock, "uagv", "v2", "ACME", "AGV001");
   vda5050_core::master::OrderPublisher publisher;
   EXPECT_CALL(
     *mock, publish(::testing::_, ::testing::_, ::testing::_, ::testing::_))
@@ -436,7 +436,7 @@ TEST(OrderPublisherTest, DifferentOrderIdTakesGraphPath)
   // order). The candidate is structurally valid as a standalone graph.
   auto mock = std::make_shared<MockMqttClient>();
   auto adapter = vda5050_core::execution::ProtocolAdapter::make(
-    mock, "rmf2", "v2", "ACME", "AGV001");
+    mock, "uagv", "v2", "ACME", "AGV001");
   vda5050_core::master::OrderPublisher publisher;
   EXPECT_CALL(
     *mock, publish(::testing::_, ::testing::_, ::testing::_, ::testing::_))

@@ -115,14 +115,14 @@ using vda5050_core::types::SafetyState;
 using vda5050_core::types::State;
 
 // VDA5050 has two distinct "version" strings on the wire:
-//   - kTopicVersion: appears in MQTT topic paths (rmf2/v2/...). The
+//   - kTopicVersion: appears in MQTT topic paths (uagv/v2/...). The
 //     master's `Version` constant ("v2") is what AGV::setup_subscriptions
 //     uses, so we must match it to route messages.
 //   - kProtocolVersion: appears in JSON header.version. The master's
 //     schema validator (SupportedSchemaVersions = {"2.0.0"}) requires
 //     this value. We override the adapter-filled header on outbound
 //     publishes so messages pass the master's incoming schema check.
-constexpr const char* kInterface = "rmf2";
+constexpr const char* kInterface = "uagv";
 constexpr const char* kTopicVersion = "v2";
 constexpr const char* kProtocolVersion = "2.0.0";
 constexpr int kDefaultTickMs = 1000;

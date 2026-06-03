@@ -68,9 +68,9 @@
 //   ProtocolAdapter::connect()         → MqttClientInterface::connect() (raw)
 //   ProtocolAdapter::set_will<T>()     → MqttClientInterface::set_will(topic,
 //                                          json, qos) (raw, before connect)
-// Constants "uagv"/"2.0.0" changed to "rmf2"/"v2" to match the master's
-// topic convention (vda5050_core/master/standard_names.hpp). Header.version
-// for outbound messages is handled by SECTION 2 to satisfy schema validator.
+// Constants "uagv"/"v2" match the master's topic convention
+// (vda5050_core/master/standard_names.hpp). Header.version for outbound
+// messages is handled by SECTION 2 to satisfy schema validator.
 
 #include "vda5050_core/execution/base.hpp"
 #include "vda5050_core/execution/context_interface.hpp"
@@ -332,7 +332,7 @@ private:
 //     advance_idx_. Never held while calling mqtt_->publish or
 //     provider->push (lock-order discipline mirrors mock_client).
 
-constexpr const char* kInterface = "rmf2";
+constexpr const char* kInterface = "uagv";
 constexpr const char* kTopicVersion = "v2";
 constexpr const char* kProtocolVersion = "2.0.0";  // schema-validator-compat
 
@@ -605,7 +605,7 @@ int main()
   const std::string mfg = "Manufacturer";
   const std::string serial = "S001";
 
-  // SECTION 1 plumbing — adapted: shared_ptr factory + rmf2/v2 constants.
+  // SECTION 1 plumbing — adapted: shared_ptr factory + uagv/v2 constants.
   // Client id must be unique per process: a hardcoded id causes Paho
   // MQTT to evict the prior connection when a fresh process reconnects,
   // producing a disconnect ping-pong that breaks back-to-back scenario
