@@ -22,6 +22,7 @@
 #include <utility>
 
 #include "vda5050_core/logger/logger.hpp"
+#include "vda5050_master_ros2/internal/ros2_topic_naming.hpp"
 
 namespace vda5050_master_ros2 {
 OrderStatusPublisher::OrderStatusPublisher(
@@ -45,9 +46,9 @@ std::string OrderStatusPublisher::order_status_topic(
     topic += namespace_;
     topic += "/";
   }
-  topic += manufacturer;
+  topic += internal::to_ros2_topic_segment(manufacturer);
   topic += "/";
-  topic += serial_number;
+  topic += internal::to_ros2_topic_segment(serial_number);
   topic += "/order_status";
   return topic;
 }
@@ -71,6 +72,15 @@ OrderStatusPublisher::ensure_publisher_locked(
   auto pub = node_->create_publisher<vda5050_master_ros2::msg::OrderStatus>(
     topic, kQosDepth);
 
+  if (
+    internal::needs_topic_sanitization(manufacturer) ||
+    internal::needs_topic_sanitization(serial_number))
+  {
+    VDA5050_INFO(
+      "[OrderStatusPublisher] sanitized ROS 2 segment for AGV {} -> topic {} "
+      "(ROS 2 names cannot start with a digit; '_' was prepended)",
+      id, topic);
+  }
   VDA5050_INFO(
     "[OrderStatusPublisher] created publisher for {} on topic {}", id, topic);
 

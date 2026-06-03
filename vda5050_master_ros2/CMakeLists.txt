@@ -214,6 +214,11 @@ if(BUILD_TESTING)
   set_target_properties(test_order_status_builder PROPERTIES
     BUILD_RPATH_USE_ORIGIN TRUE
     INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+  # Pure header-only helper — no DDS env, no library link needed.
+  ament_add_gmock(test_ros2_topic_naming test/unit/test_unit_ros2_topic_naming.cpp)
+  target_include_directories(test_ros2_topic_naming PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include)
 endif()
 
 ament_package()

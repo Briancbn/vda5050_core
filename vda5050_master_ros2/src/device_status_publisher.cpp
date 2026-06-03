@@ -24,6 +24,7 @@
 #include <utility>
 
 #include "vda5050_core/logger/logger.hpp"
+#include "vda5050_master_ros2/internal/ros2_topic_naming.hpp"
 #include "vda5050_master_ros2/internal/to_msg.hpp"
 
 namespace vda5050_master_ros2 {
@@ -69,9 +70,9 @@ std::string DeviceStatusPublisher::make_topic(
     topic += namespace_;
     topic += "/";
   }
-  topic += manufacturer;
+  topic += internal::to_ros2_topic_segment(manufacturer);
   topic += "/";
-  topic += serial_number;
+  topic += internal::to_ros2_topic_segment(serial_number);
   topic += "/";
   topic += leaf;
   return topic;
@@ -133,6 +134,15 @@ DeviceStatusPublisher::ensure_publishers_locked(
     node_->create_publisher<vda5050_master_ros2::msg::DeviceStatus>(
       device_status_topic(manufacturer, serial_number), combined_qos);
 
+  if (
+    internal::needs_topic_sanitization(manufacturer) ||
+    internal::needs_topic_sanitization(serial_number))
+  {
+    VDA5050_INFO(
+      "[DeviceStatusPublisher] sanitized ROS 2 segment for AGV {} "
+      "(ROS 2 names cannot start with a digit; '_' was prepended)",
+      id);
+  }
   VDA5050_INFO(
     "[DeviceStatusPublisher] created publishers for {} on topics {} / {} / "
     "{} / {}",
