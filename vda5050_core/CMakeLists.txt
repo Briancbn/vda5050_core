@@ -255,16 +255,16 @@ install(
     vda5050_layout
     vda5050_master
   EXPORT export_${PROJECT_NAME}
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
 # Export the targets and generate a plain CMake package config so consumers can
 # `find_package(vda5050_core)` and link `vda5050_core::<component>`.
 install(EXPORT export_${PROJECT_NAME}
   NAMESPACE ${PROJECT_NAME}::
-  DESTINATION lib/cmake/${PROJECT_NAME}
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
   FILE ${PROJECT_NAME}Targets.cmake
 )
 
@@ -272,7 +272,7 @@ include(CMakePackageConfigHelpers)
 configure_package_config_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in
   ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-  INSTALL_DESTINATION lib/cmake/${PROJECT_NAME}
+  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
 write_basic_package_version_file(
   ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
@@ -283,7 +283,7 @@ install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
   ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
   cmake/vda5050_ament_lint_common.cmake
-  DESTINATION lib/cmake/${PROJECT_NAME}
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
 
 option(BUILD_EXAMPLES "Build examples" ON)
@@ -318,7 +318,7 @@ if(BUILD_EXAMPLES)
       provider_example
       engine_example
       handler_integration
-    DESTINATION lib/${PROJECT_NAME}
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}
   )
 endif()
 
