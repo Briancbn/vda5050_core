@@ -122,7 +122,8 @@ TEST(HeartbeatListenerTest, HeartbeatNotReceivedTimeout)
     [&heartbeat_failed]() {
       // Timeout callback
       VDA5050_INFO("Timeout callback");
-      VDA5050_INFO("Heartbeat_failed before store: {}", heartbeat_failed.load());
+      VDA5050_INFO(
+        "Heartbeat_failed before store: {}", heartbeat_failed.load());
       heartbeat_failed.store(true);
       VDA5050_INFO("Heartbeat_failed after store: {}", heartbeat_failed.load());
       // ASSERT_TRUE(heartbeat_failed->load());

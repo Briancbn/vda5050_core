@@ -163,8 +163,8 @@ bool HeartbeatListener::is_timeout()
   if (std::abs(time_since_last_connection_report) > heartbeat_interval_)
   {
     VDA5050_WARN(
-      "[{}] Connection heartbeat timeout after {} seconds (max: {}s)",
-      id_, time_since_last_connection_report, heartbeat_interval_);
+      "[{}] Connection heartbeat timeout after {} seconds (max: {}s)", id_,
+      time_since_last_connection_report, heartbeat_interval_);
     return true;
   }
   return false;
