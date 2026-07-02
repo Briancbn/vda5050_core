@@ -1,0 +1,51 @@
+name: Build and test on native macOS
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  macos:
+    name: macOS (Clang + Homebrew)
+    runs-on: macos-latest
+    env:
+      SOURCE_DIR: vda5050_core
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: brew install fmt nlohmann-json googletest mosquitto libpaho-mqtt
+
+      # paho.mqtt.cpp (C++ wrapper) is not in Homebrew core; build from source
+      # and install alongside the C library under $(brew --prefix).
+      - name: Build and install paho.mqtt.cpp
+        run: |
+          git clone --depth 1 --branch v1.5.1 \
+            https://github.com/eclipse-paho/paho.mqtt.cpp.git /tmp/paho.mqtt.cpp
+          cmake -S /tmp/paho.mqtt.cpp -B /tmp/paho.mqtt.cpp/build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DPAHO_BUILD_SHARED=ON \
+            -DPAHO_ENABLE_TESTING=OFF \
+            -DCMAKE_PREFIX_PATH="$(brew --prefix)"
+          cmake --build /tmp/paho.mqtt.cpp/build
+          cmake --install /tmp/paho.mqtt.cpp/build --prefix "$(brew --prefix)"
+
+      - name: Configure
+        run: cmake -S "$SOURCE_DIR" -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Start MQTT broker (mosquitto)
+        run: |
+          # mosquitto 2.x denies anonymous access and needs an explicit listener.
+          printf "listener 1883\nallow_anonymous true\n" > /tmp/mosquitto.conf
+          mosquitto -c /tmp/mosquitto.conf -d
+          sleep 2
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
