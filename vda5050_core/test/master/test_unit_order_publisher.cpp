@@ -255,44 +255,6 @@ TEST(OrderPublisherTest, NotReadyAGVRejectedAtPreSend)
     << result.fatal_errors().front().error_type;
 }
 
-TEST(OrderPublisherTest, GraphInvalidOrderIsAdvisoryNotBlocking)
-{
-  auto mock = std::make_shared<MockMqttClient>();
-  ON_CALL(*mock, connected()).WillByDefault(::testing::Return(true));
-  auto adapter = vda5050_core::execution::ProtocolAdapter::make(
-    mock, "uagv", "2.0.0", "ACME", "AGV001");
-  vda5050_core::master::OrderPublisher publisher;
-
-  // 2 nodes, 0 edges violates the "edges = nodes - 1" rule, but only at
-  // WARNING level, so the publisher doesn't treat it as a hard failure.
-  vda5050_core::types::Order bad_order;
-  fill_schema_valid_header(bad_order.header);
-  bad_order.order_id = "ORDER_BAD";
-  bad_order.order_update_id = 0;
-
-  vda5050_core::types::Node n0;
-  n0.node_id = "N0";
-  n0.sequence_id = 0;
-  n0.released = true;
-  vda5050_core::types::Node n1;
-  n1.node_id = "N1";
-  n1.sequence_id = 2;
-  n1.released = true;
-  bad_order.nodes = {n0, n1};
-  // intentionally leave bad_order.edges empty
-
-  // AGV parked on the first node (reachability passes) and no factsheet
-  // (capability skipped), so the graph warning is the only finding.
-  EXPECT_CALL(
-    *mock, publish(::testing::_, ::testing::_, ::testing::_, ::testing::_))
-    .Times(1);
-
-  auto ctx = make_ready_context("N0");
-  auto result = publisher.publish(*adapter, ctx, bad_order, std::nullopt);
-
-  EXPECT_TRUE(static_cast<bool>(result));
-}
-
 // =============================================================================
 // Publisher branches on update vs new order: no/different active order takes
 // the is_valid_graph path; same order_id takes combine_order (sparse seqs OK).

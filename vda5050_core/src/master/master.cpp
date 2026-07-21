@@ -850,7 +850,8 @@ InstantActionAssignmentResult VDA5050Master::assign_instant_actions(
       case ActionGateStep::LIMITS:
         res.decision = InstantActionDecision::EXCEEDS_PROTOCOL_LIMITS;
         break;
-      case ActionGateStep::CONFLICT: {
+      case ActionGateStep::CONFLICT:
+      {
         // A mixed batch can carry both; report HARD if any error is HARD.
         const bool any_hard =
           std::any_of(res.errors.begin(), res.errors.end(), [](const auto& e) {

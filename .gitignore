@@ -12,3 +12,8 @@ install/
 log/
 out/
 tags/
+
+.DS_Store
+
+.agents
+CLAUDE.md
