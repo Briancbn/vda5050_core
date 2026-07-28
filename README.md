@@ -48,15 +48,15 @@ flowchart LR
 
 | Guide                                                              | Description                                               |
 | ------------------------------------------------------------------ | --------------------------------------------------------- |
-| **[Client Adapter Guide](vda5050_core/docs/client-adapter.md)**    | Step-by-step integration guide for AGV/AMR                |
-| **[Master Guide](docs/master.md)**                    | Step-by-step guide to building a master control           |
-| **[Master API Reference](docs/master-api.md)**        | Master commands, types and callbacks                      |
-| **[Types and Serialization Guide](vda5050_core/docs/types.md)**    | Message structures, validation rules and JSON conversion  |
-| **[Validation Guide](docs/validation.md)**            | Validator checks, required inputs and results             |
-| **[Open-RMF Migration Guide](vda5050_core/docs/rmf-migration.md)** | Migrating an Open-RMF fleet adapter to a VDA5050 Adapter  |
-| **[Architecture and Design](vda5050_core/docs/design.md)**         | Architecture and design rationale                         |
+| **[Client Adapter Guide](docs/client-adapter.md)**                 | Step-by-step integration guide for AGV/AMR                |
+| **[Master Guide](docs/master.md)**                                 | Step-by-step guide to building a master control           |
+| **[Master API Reference](docs/master-api.md)**                     | Master commands, types and callbacks                      |
+| **[Types and Serialization Guide](docs/types.md)**                 | Message structures, validation rules and JSON conversion  |
+| **[Validation Guide](docs/validation.md)**                         | Validator checks, required inputs and results             |
+| **[Open-RMF Migration Guide](docs/rmf-migration.md)**              | Migrating an Open-RMF fleet adapter to a VDA5050 Adapter  |
+| **[Architecture and Design](docs/design.md)**                      | Architecture and design rationale                         |
 
-To connect an existing robot SDK, REST API or ROS 2 navigation system, start with the [Client Adapter Guide](vda5050_core/docs/client-adapter.md).
+To connect an existing robot SDK, REST API or ROS 2 navigation system, start with the [Client Adapter Guide](docs/client-adapter.md).
 
 To build a master control, or integrate one into an existing application, start with the [Master Guide](docs/master.md).
 
@@ -164,11 +164,13 @@ find_package(vda5050_core REQUIRED)
 target_link_libraries(agv_application
   PRIVATE
     vda5050_core::client
+    vda5050_core::transport
+    vda5050_core::logger
 )
 ```
 
 For a complete integration covering navigation, actions, localization, cancellation and state reporting,
-see the [Client Adapter Guide](vda5050_core/docs/client-adapter.md) and a preconfigured
+see the [Client Adapter Guide](docs/client-adapter.md) and a preconfigured
 [example](vda5050_core/examples/client/adapter_example.cpp).
 
 #### Master Control Integration
