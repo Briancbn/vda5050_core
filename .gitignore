@@ -12,6 +12,7 @@ install/
 log/
 out/
 tags/
+docs/api
 
 .DS_Store
 
