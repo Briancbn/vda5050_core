@@ -42,6 +42,9 @@
 
 namespace py = pybind11;
 
+void bind_transport(py::module_& m);
+void bind_master(py::module_& m);
+
 using vda5050_core::python::rmf_migration::ActionExecutor;
 using vda5050_core::python::rmf_migration::ActivityIdentifier;
 using vda5050_core::python::rmf_migration::Adapter;
@@ -75,9 +78,12 @@ using vda5050_core::types::OperatingMode;
 using vda5050_core::types::SafetyState;
 using vda5050_core::types::Velocity;
 
-PYBIND11_MODULE(vda5050_core_python, m)
+PYBIND11_MODULE(_core, m)
 {
   m.doc() = "VDA5050 Core Python bindings";
+
+  bind_transport(m);
+  bind_master(m);
 
   auto m_client = m.def_submodule("client", "Native VDA5050 client API");
 

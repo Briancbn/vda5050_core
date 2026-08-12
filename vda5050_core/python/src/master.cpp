@@ -1,0 +1,524 @@
+/*
+ * Copyright (C) 2026 ROS-Industrial Consortium Asia Pacific
+ * Advanced Remanufacturing and Technology Centre
+ * A*STAR Research Entities (Co. Registration No. 199702110H)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <pybind11/chrono.h>
+#include <pybind11/functional.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <pybind11_json/pybind11_json.hpp>
+
+#include <nlohmann/json.hpp>
+
+#include "vda5050_core/json_utils/serialization.hpp"
+#include "vda5050_core/master/actions/instant_action_assignment_result.hpp"
+#include "vda5050_core/master/agv.hpp"
+#include "vda5050_core/master/master.hpp"
+#include "vda5050_core/master/order/order_assignment_result.hpp"
+#include "vda5050_core/types/connection_state.hpp"
+
+namespace py = pybind11;
+
+using vda5050_core::master::AGV;
+using vda5050_core::master::AGVState;
+using vda5050_core::master::InstantActionAssignmentResult;
+using vda5050_core::master::InstantActionDecision;
+using vda5050_core::master::OrderAssignmentDecision;
+using vda5050_core::master::OrderAssignmentResult;
+using vda5050_core::master::VDA5050Master;
+using vda5050_core::types::ConnectionState;
+using vda5050_core::types::OperatingMode;
+
+void bind_master(py::module_& m)
+{
+  auto m_master =
+    m.def_submodule("master", "VDA5050 master fleet control API");
+
+  // --- Enums ---
+
+  py::enum_<ConnectionState>(m_master, "ConnectionState")
+    .value("ONLINE", ConnectionState::ONLINE)
+    .value("OFFLINE", ConnectionState::OFFLINE)
+    .value("CONNECTIONBROKEN", ConnectionState::CONNECTIONBROKEN);
+
+  py::enum_<AGVState>(m_master, "AGVState")
+    .value("STATE_UNKNOWN", AGVState::STATE_UNKNOWN)
+    .value("AVAILABLE", AGVState::AVAILABLE)
+    .value("UNAVAILABLE", AGVState::UNAVAILABLE)
+    .value("ERROR", AGVState::ERROR);
+
+  py::enum_<OrderAssignmentDecision>(m_master, "OrderAssignmentDecision")
+    .value("ASSIGNED", OrderAssignmentDecision::ASSIGNED)
+    .value("AGV_NOT_ONBOARDED", OrderAssignmentDecision::AGV_NOT_ONBOARDED)
+    .value("AGV_OFFLINE", OrderAssignmentDecision::AGV_OFFLINE)
+    .value("AGV_NOT_READY", OrderAssignmentDecision::AGV_NOT_READY)
+    .value("AGV_MODE_NOT_AUTO", OrderAssignmentDecision::AGV_MODE_NOT_AUTO)
+    .value(
+      "AGV_POSITION_NOT_INITIALIZED",
+      OrderAssignmentDecision::AGV_POSITION_NOT_INITIALIZED)
+    .value("AGV_NO_STATE_YET", OrderAssignmentDecision::AGV_NO_STATE_YET)
+    .value("AGV_QUEUE_FULL", OrderAssignmentDecision::AGV_QUEUE_FULL)
+    .value("STITCH_REJECTED", OrderAssignmentDecision::STITCH_REJECTED)
+    .value("STITCH_QUEUED", OrderAssignmentDecision::STITCH_QUEUED)
+    .value("DUPLICATE_IGNORED", OrderAssignmentDecision::DUPLICATE_IGNORED);
+
+  py::enum_<InstantActionDecision>(m_master, "InstantActionDecision")
+    .value("ASSIGNED", InstantActionDecision::ASSIGNED)
+    .value("AGV_NOT_ONBOARDED", InstantActionDecision::AGV_NOT_ONBOARDED)
+    .value("AGV_OFFLINE", InstantActionDecision::AGV_OFFLINE)
+    .value(
+      "DUPLICATE_ACTION_ID", InstantActionDecision::DUPLICATE_ACTION_ID)
+    .value("AGV_QUEUE_FULL", InstantActionDecision::AGV_QUEUE_FULL)
+    .value(
+      "HARD_ACTION_BLOCKED", InstantActionDecision::HARD_ACTION_BLOCKED)
+    .value(
+      "ACTION_BLOCKED_BY_DRIVING",
+      InstantActionDecision::ACTION_BLOCKED_BY_DRIVING)
+    .value(
+      "AGV_MODE_NOT_AUTO_FOR_ACTION",
+      InstantActionDecision::AGV_MODE_NOT_AUTO_FOR_ACTION)
+    .value("INVALID_CONTENT", InstantActionDecision::INVALID_CONTENT)
+    .value(
+      "AGV_CANNOT_PERFORM_ACTION",
+      InstantActionDecision::AGV_CANNOT_PERFORM_ACTION)
+    .value(
+      "EXCEEDS_PROTOCOL_LIMITS",
+      InstantActionDecision::EXCEEDS_PROTOCOL_LIMITS);
+
+  // --- Result structs ---
+
+  py::class_<OrderAssignmentResult>(m_master, "OrderAssignmentResult")
+    .def_readonly("decision", &OrderAssignmentResult::decision)
+    .def_readonly("errors", &OrderAssignmentResult::errors)
+    .def("__bool__", [](const OrderAssignmentResult& r) {
+      return static_cast<bool>(r);
+    });
+
+  py::class_<InstantActionAssignmentResult>(
+    m_master, "InstantActionAssignmentResult")
+    .def_readonly("decision", &InstantActionAssignmentResult::decision)
+    .def_readonly("errors", &InstantActionAssignmentResult::errors)
+    .def("__bool__", [](const InstantActionAssignmentResult& r) {
+      return static_cast<bool>(r);
+    });
+
+  // last_disconnect_at: pybind11/chrono.h + pybind11/stl.h convert
+  // std::optional<system_clock::time_point> → datetime.datetime | None.
+  py::class_<VDA5050Master::BrokerStatusSnapshot>(
+    m_master, "BrokerStatusSnapshot")
+    .def_readonly(
+      "connected", &VDA5050Master::BrokerStatusSnapshot::connected)
+    .def_readonly(
+      "last_disconnect_at",
+      &VDA5050Master::BrokerStatusSnapshot::last_disconnect_at)
+    .def_readonly(
+      "reconnect_count",
+      &VDA5050Master::BrokerStatusSnapshot::reconnect_count);
+
+  py::class_<VDA5050Master::OnboardSpec>(m_master, "OnboardSpec")
+    .def(py::init<>())
+    .def(
+      py::init(
+        [](const std::string& mfg, const std::string& serial,
+           std::size_t max_queue, bool drop_oldest) {
+          VDA5050Master::OnboardSpec s;
+          s.manufacturer = mfg;
+          s.serial_number = serial;
+          s.max_queue_size = max_queue;
+          s.drop_oldest = drop_oldest;
+          return s;
+        }),
+      py::arg("manufacturer"), py::arg("serial_number"),
+      py::arg("max_queue_size") = 10, py::arg("drop_oldest") = true)
+    .def_readwrite("manufacturer", &VDA5050Master::OnboardSpec::manufacturer)
+    .def_readwrite(
+      "serial_number", &VDA5050Master::OnboardSpec::serial_number)
+    .def_readwrite(
+      "max_queue_size", &VDA5050Master::OnboardSpec::max_queue_size)
+    .def_readwrite("drop_oldest", &VDA5050Master::OnboardSpec::drop_oldest);
+
+  py::class_<VDA5050Master::BatchOnboardResult>(m_master, "BatchOnboardResult")
+    .def_readonly(
+      "onboarded", &VDA5050Master::BatchOnboardResult::onboarded)
+    .def_readonly(
+      "skipped_already_onboarded",
+      &VDA5050Master::BatchOnboardResult::skipped_already_onboarded)
+    .def_readonly("failed", &VDA5050Master::BatchOnboardResult::failed);
+
+  // --- AGV (read-only fleet view) ---
+  //
+  // Cached message accessors return the VDA5050 message as a Python dict (via
+  // nlohmann::json) or None. Returning std::optional<nlohmann::json> lets
+  // pybind11/stl.h + pybind11_json handle the dict | None conversion.
+
+  py::class_<AGV, std::shared_ptr<AGV>>(m_master, "AGV")
+    .def("get_interface_name", &AGV::get_interface_name)
+    .def("get_manufacturer", &AGV::get_manufacturer)
+    .def("get_serial_number", &AGV::get_serial_number)
+    .def("get_agv_id", &AGV::get_agv_id)
+    .def("is_connected", &AGV::is_connected)
+    .def("get_connection_status", &AGV::get_connection_status)
+    .def("get_operational_state", &AGV::get_operational_state)
+    .def(
+      "get_last_state",
+      [](const AGV& self) -> std::optional<nlohmann::json> {
+        auto opt = self.get_last_state();
+        if (!opt) return std::nullopt;
+        return nlohmann::json(*opt);
+      })
+    .def(
+      "get_last_connection",
+      [](const AGV& self) -> std::optional<nlohmann::json> {
+        auto opt = self.get_last_connection();
+        if (!opt) return std::nullopt;
+        return nlohmann::json(*opt);
+      })
+    .def(
+      "get_last_factsheet",
+      [](const AGV& self) -> std::optional<nlohmann::json> {
+        auto opt = self.get_last_factsheet();
+        if (!opt) return std::nullopt;
+        return nlohmann::json(*opt);
+      })
+    .def(
+      "get_last_visualization",
+      [](const AGV& self) -> std::optional<nlohmann::json> {
+        auto opt = self.get_last_visualization();
+        if (!opt) return std::nullopt;
+        return nlohmann::json(*opt);
+      })
+    .def("has_active_order", &AGV::has_active_order)
+    // std::optional<std::string> / std::optional<uint32_t> → str | None, int | None
+    .def("active_order_id", &AGV::active_order_id)
+    .def("active_order_update_id", &AGV::active_order_update_id)
+    .def("is_order_complete", &AGV::is_order_complete)
+    .def("get_pending_order_count", &AGV::get_pending_order_count)
+    .def(
+      "get_pending_instant_actions_count",
+      &AGV::get_pending_instant_actions_count);
+
+  // --- VDA5050Master ---
+  //
+  // Complex VDA5050 message types (Order, State, Connection, etc.) are passed
+  // as Python dicts and converted via nlohmann::json + pybind11_json.
+  // Callbacks fire from the MQTT I/O thread; each acquires the GIL before
+  // invoking the Python callable.
+
+  py::class_<VDA5050Master, std::shared_ptr<VDA5050Master>>(
+    m_master, "VDA5050Master")
+    .def_static("make", &VDA5050Master::make, py::arg("mqtt_client"))
+
+    // Connection management
+    .def("connect", &VDA5050Master::connect)
+    .def("disconnect", &VDA5050Master::disconnect)
+    .def("is_connected", &VDA5050Master::is_connected)
+    .def("get_broker_status", &VDA5050Master::get_broker_status)
+
+    // AGV onboarding / offboarding
+    .def(
+      "onboard_agv",
+      py::overload_cast<
+        const std::string&, const std::string&, std::size_t, bool>(
+        &VDA5050Master::onboard_agv),
+      py::arg("manufacturer"), py::arg("serial_number"),
+      py::arg("max_queue_size") = 10, py::arg("drop_oldest") = true)
+    .def(
+      "onboard_agv_with_interface",
+      py::overload_cast<
+        const std::string&, const std::string&, const std::string&,
+        std::size_t, bool>(&VDA5050Master::onboard_agv),
+      py::arg("interface_name"), py::arg("manufacturer"),
+      py::arg("serial_number"), py::arg("max_queue_size") = 10,
+      py::arg("drop_oldest") = true)
+    .def(
+      "offboard_agv", &VDA5050Master::offboard_agv,
+      py::arg("manufacturer"), py::arg("serial_number"))
+    .def(
+      "is_agv_onboarded", &VDA5050Master::is_agv_onboarded,
+      py::arg("manufacturer"), py::arg("serial_number"))
+    .def(
+      "get_agv", &VDA5050Master::get_agv, py::arg("manufacturer"),
+      py::arg("serial_number"))
+    .def("get_onboarded_agvs", &VDA5050Master::get_onboarded_agvs)
+    .def(
+      "cancel_pending_orders", &VDA5050Master::cancel_pending_orders,
+      py::arg("manufacturer"), py::arg("serial_number"))
+    .def(
+      "resume_mode_cancelled_queue",
+      &VDA5050Master::resume_mode_cancelled_queue, py::arg("manufacturer"),
+      py::arg("serial_number"))
+    .def(
+      "discard_mode_cancelled_queue",
+      &VDA5050Master::discard_mode_cancelled_queue, py::arg("manufacturer"),
+      py::arg("serial_number"))
+    .def(
+      "onboard_agv_batch", &VDA5050Master::onboard_agv_batch,
+      py::arg("specs"))
+    .def(
+      "offboard_agv_batch", &VDA5050Master::offboard_agv_batch,
+      py::arg("keys"))
+
+    // Outgoing messages: accept Python dicts, deserialize via JSON
+    .def(
+      "publish_order",
+      [](VDA5050Master& self, const std::string& mfg,
+         const std::string& serial, const nlohmann::json& order_json) {
+        return self.publish_order(
+          mfg, serial, order_json.get<vda5050_core::types::Order>());
+      },
+      py::arg("manufacturer"), py::arg("serial_number"), py::arg("order"))
+    .def(
+      "assign_order",
+      [](VDA5050Master& self, const std::string& mfg,
+         const std::string& serial, const nlohmann::json& order_json) {
+        return self.assign_order(
+          mfg, serial, order_json.get<vda5050_core::types::Order>());
+      },
+      py::arg("manufacturer"), py::arg("serial_number"), py::arg("order"))
+    .def(
+      "publish_instant_actions",
+      [](VDA5050Master& self, const std::string& mfg,
+         const std::string& serial, const nlohmann::json& ia_json) {
+        return self.publish_instant_actions(
+          mfg, serial,
+          ia_json.get<vda5050_core::types::InstantActions>());
+      },
+      py::arg("manufacturer"), py::arg("serial_number"), py::arg("actions"))
+    .def(
+      "assign_instant_actions",
+      [](VDA5050Master& self, const std::string& mfg,
+         const std::string& serial, const nlohmann::json& ia_json) {
+        return self.assign_instant_actions(
+          mfg, serial,
+          ia_json.get<vda5050_core::types::InstantActions>());
+      },
+      py::arg("manufacturer"), py::arg("serial_number"), py::arg("actions"))
+
+    // Topology
+    .def(
+      "load_layout_from_config",
+      [](VDA5050Master& self, const std::string& path) {
+        auto result = self.load_layout_from_config(path);
+        py::list errors;
+        for (const auto& e : result.errors) {
+          errors.append(e.description);
+        }
+        py::dict d;
+        d["success"] = static_cast<bool>(result);
+        d["errors"] = errors;
+        return d;
+      },
+      py::arg("path"))
+
+    // Raw message callbacks (message delivered as Python dict)
+    .def(
+      "on_state",
+      [](VDA5050Master& self, py::function cb) {
+        self.on_state(
+          [cb](const std::string& agv_id,
+               const vda5050_core::types::State& state) {
+            py::gil_scoped_acquire acquire;
+            cb(agv_id, py::cast(nlohmann::json(state)));
+          });
+      })
+    .def(
+      "on_connection",
+      [](VDA5050Master& self, py::function cb) {
+        self.on_connection(
+          [cb](const std::string& agv_id,
+               const vda5050_core::types::Connection& conn) {
+            py::gil_scoped_acquire acquire;
+            cb(agv_id, py::cast(nlohmann::json(conn)));
+          });
+      })
+    .def(
+      "on_factsheet",
+      [](VDA5050Master& self, py::function cb) {
+        self.on_factsheet(
+          [cb](const std::string& agv_id,
+               const vda5050_core::types::Factsheet& fs) {
+            py::gil_scoped_acquire acquire;
+            cb(agv_id, py::cast(nlohmann::json(fs)));
+          });
+      })
+    .def(
+      "on_visualization",
+      [](VDA5050Master& self, py::function cb) {
+        self.on_visualization(
+          [cb](const std::string& agv_id,
+               const vda5050_core::types::Visualization& viz) {
+            py::gil_scoped_acquire acquire;
+            cb(agv_id, py::cast(nlohmann::json(viz)));
+          });
+      })
+
+    // Event callbacks
+    .def(
+      "on_node_reached",
+      [](VDA5050Master& self, py::function cb) {
+        self.on_node_reached(
+          [cb](const std::string& agv_id, const std::string& node_id) {
+            py::gil_scoped_acquire acquire;
+            cb(agv_id, node_id);
+          });
+      })
+    .def(
+      "on_order_complete",
+      [](VDA5050Master& self, py::function cb) {
+        self.on_order_complete(
+          [cb](const std::string& agv_id, const std::string& order_id) {
+            py::gil_scoped_acquire acquire;
+            cb(agv_id, order_id);
+          });
+      })
+    .def(
+      "on_order_rejected",
+      [](VDA5050Master& self, py::function cb) {
+        self.on_order_rejected(
+          [cb](const std::string& agv_id, const std::string& order_id,
+               const std::vector<vda5050_core::types::Error>& errors) {
+            py::gil_scoped_acquire acquire;
+            cb(agv_id, order_id, errors);
+          });
+      })
+    .def(
+      "on_errors_appeared",
+      [](VDA5050Master& self, py::function cb) {
+        self.on_errors_appeared(
+          [cb](const std::string& agv_id,
+               const std::vector<vda5050_core::types::Error>& errors) {
+            py::gil_scoped_acquire acquire;
+            cb(agv_id, errors);
+          });
+      })
+    .def(
+      "on_errors_resolved",
+      [](VDA5050Master& self, py::function cb) {
+        self.on_errors_resolved(
+          [cb](const std::string& agv_id,
+               const std::vector<vda5050_core::types::Error>& errors) {
+            py::gil_scoped_acquire acquire;
+            cb(agv_id, errors);
+          });
+      })
+    .def(
+      "on_new_base_requested",
+      [](VDA5050Master& self, py::function cb) {
+        self.on_new_base_requested([cb](const std::string& agv_id) {
+          py::gil_scoped_acquire acquire;
+          cb(agv_id);
+        });
+      })
+    .def(
+      "on_mode_changed",
+      [](VDA5050Master& self, py::function cb) {
+        self.on_mode_changed(
+          [cb](const std::string& agv_id, OperatingMode new_mode,
+               OperatingMode prev_mode) {
+            py::gil_scoped_acquire acquire;
+            cb(agv_id, new_mode, prev_mode);
+          });
+      })
+    .def(
+      "on_paused",
+      [](VDA5050Master& self, py::function cb) {
+        self.on_paused([cb](const std::string& agv_id, bool paused) {
+          py::gil_scoped_acquire acquire;
+          cb(agv_id, paused);
+        });
+      })
+    .def(
+      "on_driving",
+      [](VDA5050Master& self, py::function cb) {
+        self.on_driving([cb](const std::string& agv_id, bool driving) {
+          py::gil_scoped_acquire acquire;
+          cb(agv_id, driving);
+        });
+      })
+    .def(
+      "on_loads_changed",
+      [](VDA5050Master& self, py::function cb) {
+        self.on_loads_changed(
+          [cb](const std::string& agv_id,
+               const std::vector<vda5050_core::types::Load>& loads) {
+            py::gil_scoped_acquire acquire;
+            cb(agv_id, py::cast(nlohmann::json(loads)));
+          });
+      })
+
+    // Connection event callbacks
+    .def(
+      "on_connect",
+      [](VDA5050Master& self, py::function cb) {
+        self.on_connect([cb](const std::string& agv_id) {
+          py::gil_scoped_acquire acquire;
+          cb(agv_id);
+        });
+      })
+    .def(
+      "on_offline",
+      [](VDA5050Master& self, py::function cb) {
+        self.on_offline([cb](const std::string& agv_id) {
+          py::gil_scoped_acquire acquire;
+          cb(agv_id);
+        });
+      })
+    .def(
+      "on_connection_broken",
+      [](VDA5050Master& self, py::function cb) {
+        self.on_connection_broken([cb](const std::string& agv_id) {
+          py::gil_scoped_acquire acquire;
+          cb(agv_id);
+        });
+      })
+
+    // State heartbeat callbacks
+    .def(
+      "on_state_timeout",
+      [](VDA5050Master& self, py::function cb) {
+        self.on_state_timeout([cb](const std::string& agv_id) {
+          py::gil_scoped_acquire acquire;
+          cb(agv_id);
+        });
+      })
+    .def(
+      "on_state_resumed",
+      [](VDA5050Master& self, py::function cb) {
+        self.on_state_resumed([cb](const std::string& agv_id) {
+          py::gil_scoped_acquire acquire;
+          cb(agv_id);
+        });
+      })
+
+    // Broker connection callbacks
+    .def(
+      "on_broker_disconnected",
+      [](VDA5050Master& self, py::function cb) {
+        self.on_broker_disconnected([cb]() {
+          py::gil_scoped_acquire acquire;
+          cb();
+        });
+      })
+    .def(
+      "on_broker_reconnected",
+      [](VDA5050Master& self, py::function cb) {
+        self.on_broker_reconnected([cb]() {
+          py::gil_scoped_acquire acquire;
+          cb();
+        });
+      });
+}

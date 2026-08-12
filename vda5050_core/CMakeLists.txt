@@ -221,6 +221,10 @@ option(BUILD_PYTHON "Build Python bindings" ON)
 
 if(BUILD_PYTHON)
   add_subdirectory(python)
+
+  ament_python_install_package(${PROJECT_NAME}
+    PACKAGE_DIR python/${PROJECT_NAME}
+  )
 endif()
 
 install(
@@ -241,9 +245,9 @@ install(
     vda5050_layout
     vda5050_master
   EXPORT export_${PROJECT_NAME}
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
 ament_export_targets(export_${PROJECT_NAME}
