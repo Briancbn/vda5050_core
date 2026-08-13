@@ -29,7 +29,10 @@ test = [
   "pyyaml>=6.0.3",
   "lark",
 ]
-dev = [{ include-group = "test" }]
+dev = [
+    { include-group = "test" },
+    "pybind11-stubgen>=2.5.5",
+]
 
 
 [tool.scikit-build]

@@ -220,11 +220,11 @@ target_include_directories(vda5050_master
 option(BUILD_PYTHON "Build Python bindings" ON)
 
 if(BUILD_PYTHON)
-  add_subdirectory(python)
-
   ament_python_install_package(${PROJECT_NAME}
     PACKAGE_DIR python/${PROJECT_NAME}
   )
+
+  add_subdirectory(python)
 endif()
 
 install(
