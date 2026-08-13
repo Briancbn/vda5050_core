@@ -19,9 +19,10 @@
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <pybind11_json/pybind11_json.hpp>
 
 #include <algorithm>
+
+#include <pybind11_json/pybind11_json.hpp>
 
 #include "vda5050_core/execution/protocol_adapter.hpp"
 #include "vda5050_core/json_utils/serialization.hpp"
@@ -49,7 +50,7 @@ using vda5050_core::rmf_migration::RobotUpdateHandle;
 using vda5050_core::rmf_migration::StopRequest;
 
 //=============================================================================
-void bind_rmf_migration(py::module_ & m)
+void bind_rmf_migration(py::module_& m)
 {
   auto m_rmf_migration =
     m.def_submodule("rmf_migration", "Open-RMF style migration API");

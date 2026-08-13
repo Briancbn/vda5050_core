@@ -40,7 +40,6 @@
 
 #include "vda5050_core_py/client.hpp"
 
-
 namespace vda5050_core_py {
 
 using vda5050_core::client::adapter::Pose2D;
@@ -61,7 +60,7 @@ using vda5050_core::types::OperatingMode;
 using vda5050_core::types::SafetyState;
 using vda5050_core::types::Velocity;
 
-void bind_client(py::module_ & m)
+void bind_client(py::module_& m)
 {
   auto m_client = m.def_submodule("client", "Native VDA5050 client API");
 
@@ -209,7 +208,6 @@ void bind_client(py::module_ & m)
     .def("remove_information", &StateManager::remove_information)
     .def("initialize_position", &StateManager::initialize_position)
     .def("set_transformation", &StateManager::set_transformation);
-
 }
 
 }  // namespace vda5050_core_py

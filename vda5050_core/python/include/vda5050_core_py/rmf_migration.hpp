@@ -25,7 +25,7 @@ namespace py = pybind11;
 
 namespace vda5050_core_py {
 
-void bind_rmf_migration(py::module_ & m);
+void bind_rmf_migration(py::module_& m);
 
 }  // namespace vda5050_core_py
 

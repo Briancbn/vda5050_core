@@ -18,8 +18,8 @@
 
 #include <pybind11/pybind11.h>
 
-#include "vda5050_core_py/rmf_migration.hpp"
 #include "vda5050_core_py/client.hpp"
+#include "vda5050_core_py/rmf_migration.hpp"
 
 PYBIND11_MODULE(_core, m)
 {
