@@ -14,4 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ._core.transport import *
+from vda5050_core.client import AGVPosition
+
+def test_rmf_migration_imports():
+    assert AGVPosition is not None
+
+
+def test_rmf_smoke_constructs_without_broker():
+    position = AGVPosition()
+    position.x = 5.0
+    position.y = 3.0
+
+    assert position.x == 5.0
+    assert position.y == 3.0

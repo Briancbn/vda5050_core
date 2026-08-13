@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#ifndef RMF_MIGRATION_HPP_
-#define RMF_MIGRATION_HPP_
+#ifndef VDA5050_CORE__RMF_MIGRATION_HPP_
+#define VDA5050_CORE__RMF_MIGRATION_HPP_
 
 #include <array>
 #include <functional>
@@ -32,8 +32,6 @@
 #include "vda5050_core/client/adapter/adapter.hpp"
 
 namespace vda5050_core {
-
-namespace python {
 
 namespace rmf_migration {
 
@@ -294,7 +292,6 @@ private:
 };
 
 }  // namespace rmf_migration
-}  // namespace python
 }  // namespace vda5050_core
 
-#endif  // RMF_MIGRATION_HPP_
+#endif  // VDA5050_CORE__RMF_MIGRATION_HPP_

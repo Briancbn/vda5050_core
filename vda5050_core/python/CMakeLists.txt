@@ -5,20 +5,14 @@ find_package(pybind11 REQUIRED)
 pybind11_add_module(_core
   src/core.cpp
   src/rmf_migration.cpp
-  src/transport.cpp
-  src/master.cpp
+  src/client.cpp
 )
 
 target_link_libraries(_core
-  PUBLIC
-    vda5050_core::layout
-    vda5050_core::validation
-    vda5050_core::logger
-    vda5050_core::client
-    vda5050_core::master
-    vda5050_core::transport
   PRIVATE
     Python3::Python
+    vda5050_core::logger
+    vda5050_core::client
 )
 
 target_include_directories(_core
@@ -40,8 +34,8 @@ if(SKBUILD)
   else()
     set(origin_token "$ORIGIN")
   endif()
-  set_property(TARGET _core
-    PROPERTY
+  set_target_properties(_core
+    PROPERTIES
       INSTALL_RPATH "${origin_token}/lib"
   )
   set_target_properties(
@@ -56,8 +50,8 @@ if(SKBUILD)
       INSTALL_RPATH "${origin_token}"
   )
 else()
-install(TARGETS
-  _core
-  DESTINATION ${PYTHON_INSTALL_DIR}/${PROJECT_NAME}
-)
+  install(TARGETS
+    _core
+    DESTINATION ${PYTHON_INSTALL_DIR}/${PROJECT_NAME}
+  )
 endif()
