@@ -9,6 +9,8 @@ license = "Apache-2.0"
 description = "Tools for VDA5050 development workflows"
 authors = [
   { name = "Chen Bainian", email = "chen_bainian@a-star.edu.sg" },
+  { name = "Saurabh Kamat", email = "saurabh_kamat@a-star.edu.sg" },
+  { name = "Tinapat Game Limsila", email = "limsila.limsila@gmail.com" },
 ]
 requires-python = ">=3.10"
 classifiers = [
