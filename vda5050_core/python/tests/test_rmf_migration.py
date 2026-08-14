@@ -14,7 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from vda5050_core.rmf_migration import RobotState, RobotConfiguration, FleetConfiguration, Adapter
+from vda5050_core.rmf_migration import (
+    Adapter,
+    FleetConfiguration,
+    RobotConfiguration,
+    RobotState,
+)
 
 
 def test_rmf_migration_imports():
@@ -26,9 +31,7 @@ def test_rmf_migration_imports():
 def test_rmf_smoke_constructs_without_broker():
     state = RobotState("demo-map", (1.0, 2.0, 0.0), 0.8)
     config = RobotConfiguration("ACME", "AGV-001")
-    fleet = FleetConfiguration(
-        "demo-fleet", "tcp://localhost:1883", "demo-client"
-    )
+    fleet = FleetConfiguration("demo-fleet", "tcp://localhost:1883", "demo-client")
     adapter = Adapter.make()
 
     assert state.map == "demo-map"

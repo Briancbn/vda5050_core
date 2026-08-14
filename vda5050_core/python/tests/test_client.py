@@ -16,6 +16,7 @@
 
 from vda5050_core.client import AGVPosition
 
+
 def test_rmf_migration_imports():
     assert AGVPosition is not None
 

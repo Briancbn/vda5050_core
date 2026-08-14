@@ -1,0 +1,64 @@
+name: Build and test Python
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  lint:
+    name: Ruff Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vda5050_core
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: "Install UV"
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+
+      - name: Run ruff format check
+        run: uvx ruff format --check .
+
+      - name: Run ruff lint
+        run: uvx ruff check .
+
+  test:
+    name: UV Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vda5050_core
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install C++ dependencies
+        run: |
+          sudo apt-get update -qq -y
+          sudo apt-get install -qq -y \
+            libpaho-mqtt-dev libpaho-mqttpp-dev \
+            libfmt-dev \
+            nlohmann-json3-dev \
+            pybind11-json-dev
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: "Install UV"
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+
+      - name: Install package and test dependencies
+        run: uv sync --group test
+
+      - name: Run tests
+        run: uv run pytest

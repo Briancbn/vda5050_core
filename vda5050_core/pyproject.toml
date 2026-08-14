@@ -31,8 +31,12 @@ test = [
   "pyyaml>=6.0.3",
   "lark",
 ]
+lint = [
+    "ruff>=0.9",
+]
 dev = [
     { include-group = "test" },
+    { include-group = "lint" },
     "pybind11-stubgen>=2.5.5",
 ]
 
@@ -42,6 +46,12 @@ minimum-version = "build-system.requires"
 build.requires = ["catkin_pkg"]
 build-dir = "build/{wheel_tag}"
 wheel.install-dir = "vda5050_core"
+
+[tool.scikit-build.cmake.define]
+BUILD_TESTING = "OFF"
+BUILD_EXAMPLES = "OFF"
+BUILD_PYTHON = "ON"
+ENABLE_ROS2 = "OFF"
 
 [tool.scikit-build.wheel.packages]
 vda5050_core = "python/vda5050_core"
@@ -53,6 +63,9 @@ cache-keys = [
   { file = "python/**/*.{h,c,hpp,cpp,txt}" }, 
   { file = "CMakeLists.txt" },
 ]
+
+[tool.ruff]
+extend-exclude = ["*.pyi"]
 
 # [tool.pytest.ini_options]
 # minversion = "8.0"
