@@ -4,7 +4,7 @@
 
 Navigate to the folder with `pyproject.toml`
 ```bash
-cd vda5050_cire
+cd vda5050_core
 ```
 
 Run the `pybind11-stubgen` command to generate `.pyi` files.
