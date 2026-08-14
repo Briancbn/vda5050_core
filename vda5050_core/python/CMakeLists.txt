@@ -1,6 +1,6 @@
-find_package(ament_cmake_python REQUIRED)
-find_package(Python3 COMPONENTS Development REQUIRED)
+find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 find_package(pybind11 REQUIRED)
+find_package(pybind11_json REQUIRED)
 
 pybind11_add_module(_core
   src/core.cpp
@@ -10,9 +10,9 @@ pybind11_add_module(_core
 
 target_link_libraries(_core
   PRIVATE
-    Python3::Python
     vda5050_core::logger
     vda5050_core::client
+    pybind11_json
 )
 
 target_include_directories(_core
@@ -50,8 +50,33 @@ if(SKBUILD)
       INSTALL_RPATH "${origin_token}"
   )
 else()
+  find_package(ament_cmake_python QUIET)
+
+  if(NOT ament_cmake_python_FOUND)
+    message(WARNING
+      "Python build with CMake only detected, some functions are not supported. (For example, `pip show vda5050_core`)\n"
+      "Switch to using scikit-build-core or ament_cmake_python instead!"
+    )
+
+    # setup installation path for ament_cmake hooks
+    set(PYTHON_INSTALL_DIR "local/lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/site-packages")
+
+    install(
+      DIRECTORY ${PROJECT_NAME}/
+      DESTINATION ${PYTHON_INSTALL_DIR}/${PROJECT_NAME}
+    )
+
+    # TODO(anyone): egg installation to make package detectable by pip
+  else()
+    ament_python_install_package(${PROJECT_NAME})
+  endif()
+
   install(TARGETS
     _core
     DESTINATION ${PYTHON_INSTALL_DIR}/${PROJECT_NAME}
   )
+
+  # export python path as hooks used by ament_cmake
+  file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/share/${PROJECT_NAME}/hook/pythonpath.dsv "prepend-non-duplicate;PYTHONPATH;${PYTHON_INSTALL_DIR}")
+  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/share/${PROJECT_NAME}/hook/pythonpath.dsv DESTINATION share/${PROJECT_NAME}/hook)
 endif()
