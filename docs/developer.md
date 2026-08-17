@@ -10,5 +10,5 @@ cd vda5050_core
 Run the `pybind11-stubgen` command to generate `.pyi` files.
 
 ```bash
-uv run pybind11-stubgen vda5050_core -o ./python
+uv run scripts/generate_stubs.py vda5050_core -o ./python
 ```
