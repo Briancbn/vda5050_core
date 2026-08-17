@@ -4,9 +4,9 @@ VDA5050 master fleet control API
 from __future__ import annotations
 import collections.abc
 import typing
-import vda5050_core._core.client
 import vda5050_core._core.transport
-__all__: list[str] = ['AGV', 'AGVState', 'BatchOnboardResult', 'BrokerStatusSnapshot', 'ConnectionState', 'InstantActionAssignmentResult', 'InstantActionDecision', 'OnboardSpec', 'OrderAssignmentDecision', 'OrderAssignmentResult', 'VDA5050Master']
+import vda5050_core._core.types
+__all__: list[str] = ['AGV', 'AGVState', 'BatchOnboardResult', 'BrokerStatusSnapshot', 'InstantActionAssignmentResult', 'InstantActionDecision', 'OnboardSpec', 'OrderAssignmentDecision', 'OrderAssignmentResult', 'VDA5050Master']
 class AGV:
     def active_order_id(self) -> str | None:
         ...
@@ -14,7 +14,7 @@ class AGV:
         ...
     def get_agv_id(self) -> str:
         ...
-    def get_connection_status(self) -> ConnectionState:
+    def get_connection_status(self) -> vda5050_core._core.types.ConnectionState:
         ...
     def get_interface_name(self) -> str:
         ...
@@ -113,54 +113,6 @@ class BrokerStatusSnapshot:
     @property
     def reconnect_count(self) -> int:
         ...
-class ConnectionState:
-    """
-    Members:
-    
-      ONLINE
-    
-      OFFLINE
-    
-      CONNECTIONBROKEN
-    """
-    CONNECTIONBROKEN: typing.ClassVar[ConnectionState]  # value = <ConnectionState.CONNECTIONBROKEN: 2>
-    OFFLINE: typing.ClassVar[ConnectionState]  # value = <ConnectionState.OFFLINE: 1>
-    ONLINE: typing.ClassVar[ConnectionState]  # value = <ConnectionState.ONLINE: 0>
-    __members__: typing.ClassVar[dict[str, ConnectionState]]  # value = {'ONLINE': <ConnectionState.ONLINE: 0>, 'OFFLINE': <ConnectionState.OFFLINE: 1>, 'CONNECTIONBROKEN': <ConnectionState.CONNECTIONBROKEN: 2>}
-    @typing.overload
-    def __eq__(self, other: ConnectionState) -> bool:
-        ...
-    @typing.overload
-    def __eq__(self, other: typing.Any) -> bool:
-        ...
-    def __getstate__(self) -> int:
-        ...
-    def __hash__(self) -> int:
-        ...
-    def __index__(self) -> int:
-        ...
-    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
-        ...
-    def __int__(self) -> int:
-        ...
-    @typing.overload
-    def __ne__(self, other: ConnectionState) -> bool:
-        ...
-    @typing.overload
-    def __ne__(self, other: typing.Any) -> bool:
-        ...
-    def __repr__(self) -> str:
-        ...
-    def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
-        ...
-    def __str__(self) -> str:
-        ...
-    @property
-    def name(self) -> str:
-        ...
-    @property
-    def value(self) -> int:
-        ...
 class InstantActionAssignmentResult:
     def __bool__(self) -> bool:
         ...
@@ -168,7 +120,7 @@ class InstantActionAssignmentResult:
     def decision(self) -> InstantActionDecision:
         ...
     @property
-    def errors(self) -> list[vda5050_core._core.client.Error]:
+    def errors(self) -> list[vda5050_core._core.types.Error]:
         ...
 class InstantActionDecision:
     """
@@ -337,7 +289,7 @@ class OrderAssignmentResult:
     def decision(self) -> OrderAssignmentDecision:
         ...
     @property
-    def errors(self) -> list[vda5050_core._core.client.Error]:
+    def errors(self) -> list[vda5050_core._core.types.Error]:
         ...
 class VDA5050Master:
     @staticmethod

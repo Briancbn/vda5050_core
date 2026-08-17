@@ -92,7 +92,7 @@ class RobotCallbacks:
     def stop(self) -> collections.abc.Callable[[ActivityIdentifier], None]:
         ...
 class RobotConfiguration:
-    factsheet: ... | None
+    factsheet: vda5050_core._core.types.Factsheet | None
     interface_name: str
     manufacturer: str
     serial_number: str
