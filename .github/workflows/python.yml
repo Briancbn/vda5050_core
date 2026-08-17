@@ -7,6 +7,7 @@ on:
     branches:
       - main
       - develop
+      - feat/bn/add-cibw-support-macos-test
 
 defaults:
   run:
@@ -67,7 +68,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: ["cp312"]
+        python:
+          - "cp310"
+          - "cp311"
+          - "cp312"
+          - "cp313"
+          - "cp314"
+          - "cp314t"
+          - "cp315"
+          - "cp315t"
         buildplat:
           - [ubuntu-latest, manylinux_x86_64]
           - [ubuntu-latest, musllinux_x86_64]
