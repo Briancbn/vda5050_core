@@ -4,9 +4,10 @@ find_package(pybind11_json REQUIRED)
 
 pybind11_add_module(_core
   src/core.cpp
-  src/rmf_migration.cpp
   src/client.cpp
   src/master.cpp
+  src/rmf_migration.cpp
+  src/transport.cpp
 )
 
 target_link_libraries(_core

@@ -5,6 +5,7 @@ from __future__ import annotations
 import collections.abc
 import typing
 import vda5050_core._core.client
+import vda5050_core._core.transport
 __all__: list[str] = ['AGV', 'AGVState', 'BatchOnboardResult', 'BrokerStatusSnapshot', 'ConnectionState', 'InstantActionAssignmentResult', 'InstantActionDecision', 'OnboardSpec', 'OrderAssignmentDecision', 'OrderAssignmentResult', 'VDA5050Master']
 class AGV:
     def active_order_id(self) -> str | None:
@@ -340,7 +341,7 @@ class OrderAssignmentResult:
         ...
 class VDA5050Master:
     @staticmethod
-    def make(mqtt_client: ...) -> VDA5050Master:
+    def make(mqtt_client: vda5050_core._core.transport.MqttClientInterface) -> VDA5050Master:
         ...
     def assign_instant_actions(self, manufacturer: str, serial_number: str, actions: json) -> InstantActionAssignmentResult:
         ...
