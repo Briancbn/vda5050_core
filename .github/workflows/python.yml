@@ -7,6 +7,7 @@ on:
     branches:
       - main
       - develop
+      - feat/bn/add-cibw-support-release
 
 defaults:
   run:
@@ -107,7 +108,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: ["cp312"]
+        python:
+          - "cp38"
+          - "cp39"
+          - "cp310"
+          - "cp311"
+          - "cp312"
+          - "cp313"
+          - "cp314"
+          - "cp314t"
+          - "cp315"
+          - "cp315t"
         buildplat:
           - [ubuntu-latest, manylinux_x86_64]
           - [ubuntu-latest, musllinux_x86_64]
@@ -134,9 +145,17 @@ jobs:
           fi
           echo "CIBW_ENVIRONMENT_MACOS=$CIBW" >> "$GITHUB_ENV"
 
+      - name: Set cibuildwheel version
+        run: |
+          if [[ "${{ matrix.python }}" == "cp38" ]]; then
+            echo "CIBW_PACKAGE=cibuildwheel<4.0" >> "$GITHUB_ENV"
+          else
+            echo "CIBW_PACKAGE=cibuildwheel" >> "$GITHUB_ENV"
+          fi
+
       - name: Build wheels
         run: >
-          uvx cibuildwheel
+          uvx --from "$CIBW_PACKAGE" cibuildwheel
           --only "${{ matrix.python }}-${{ matrix.buildplat[1] }}"
           --output-dir ../wheelhouse
 
