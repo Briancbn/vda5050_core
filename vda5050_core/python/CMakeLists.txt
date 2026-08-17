@@ -59,7 +59,7 @@ else()
     )
 
     # setup installation path for ament_cmake hooks
-    set(PYTHON_INSTALL_DIR "local/lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/site-packages")
+    set(PYTHON_INSTALL_DIR "local/lib/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages")
 
     install(
       DIRECTORY ${PROJECT_NAME}/
