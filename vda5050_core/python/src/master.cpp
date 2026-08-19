@@ -218,10 +218,12 @@ void bind_master(py::module_& m)
     .def_static("make", &VDA5050Master::make, py::arg("mqtt_client"))
 
     // Connection management
-    .def("connect", &VDA5050Master::connect)
-    .def("disconnect", &VDA5050Master::disconnect)
+    .def("connect", &VDA5050Master::connect, py::call_guard<py::gil_scoped_release>())
+    .def("disconnect", &VDA5050Master::disconnect, py::call_guard<py::gil_scoped_release>())
     .def("is_connected", &VDA5050Master::is_connected)
-    .def("get_broker_status", &VDA5050Master::get_broker_status)
+    .def(
+      "get_broker_status", &VDA5050Master::get_broker_status,
+      py::call_guard<py::gil_scoped_release>())
 
     // AGV onboarding / offboarding
     .def(
@@ -230,7 +232,8 @@ void bind_master(py::module_& m)
         const std::string&, const std::string&, std::size_t, bool>(
         &VDA5050Master::onboard_agv),
       py::arg("manufacturer"), py::arg("serial_number"),
-      py::arg("max_queue_size") = 10, py::arg("drop_oldest") = true)
+      py::arg("max_queue_size") = 10, py::arg("drop_oldest") = true,
+      py::call_guard<py::gil_scoped_release>())
     .def(
       "onboard_agv_with_interface",
       py::overload_cast<
@@ -238,36 +241,47 @@ void bind_master(py::module_& m)
         std::size_t, bool>(&VDA5050Master::onboard_agv),
       py::arg("interface_name"), py::arg("manufacturer"),
       py::arg("serial_number"), py::arg("max_queue_size") = 10,
-      py::arg("drop_oldest") = true)
+      py::arg("drop_oldest") = true,
+      py::call_guard<py::gil_scoped_release>())
     .def(
       "offboard_agv", &VDA5050Master::offboard_agv,
-      py::arg("manufacturer"), py::arg("serial_number"))
+      py::arg("manufacturer"), py::arg("serial_number"),
+      py::call_guard<py::gil_scoped_release>())
     .def(
       "is_agv_onboarded", &VDA5050Master::is_agv_onboarded,
       py::arg("manufacturer"), py::arg("serial_number"))
     .def(
       "get_agv", &VDA5050Master::get_agv, py::arg("manufacturer"),
       py::arg("serial_number"))
-    .def("get_onboarded_agvs", &VDA5050Master::get_onboarded_agvs)
+    .def(
+      "get_onboarded_agvs", &VDA5050Master::get_onboarded_agvs,
+      py::call_guard<py::gil_scoped_release>())
     .def(
       "cancel_pending_orders", &VDA5050Master::cancel_pending_orders,
-      py::arg("manufacturer"), py::arg("serial_number"))
+      py::arg("manufacturer"), py::arg("serial_number"),
+      py::call_guard<py::gil_scoped_release>())
     .def(
       "resume_mode_cancelled_queue",
       &VDA5050Master::resume_mode_cancelled_queue, py::arg("manufacturer"),
-      py::arg("serial_number"))
+      py::arg("serial_number"),
+      py::call_guard<py::gil_scoped_release>())
     .def(
       "discard_mode_cancelled_queue",
       &VDA5050Master::discard_mode_cancelled_queue, py::arg("manufacturer"),
-      py::arg("serial_number"))
+      py::arg("serial_number"),
+      py::call_guard<py::gil_scoped_release>())
     .def(
       "onboard_agv_batch", &VDA5050Master::onboard_agv_batch,
-      py::arg("specs"))
+      py::arg("specs"),
+      py::call_guard<py::gil_scoped_release>())
     .def(
       "offboard_agv_batch", &VDA5050Master::offboard_agv_batch,
-      py::arg("keys"))
+      py::arg("keys"),
+      py::call_guard<py::gil_scoped_release>())
 
-    // Outgoing messages: accept Python dicts, deserialize via JSON
+    // Outgoing messages: accept Python dicts, deserialize via JSON.
+    // GIL is released before calling into C++ (argument conversion from Python
+    // dict → nlohmann::json happens before call_guard takes effect).
     .def(
       "publish_order",
       [](VDA5050Master& self, const std::string& mfg,
@@ -275,7 +289,8 @@ void bind_master(py::module_& m)
         return self.publish_order(
           mfg, serial, order_json.get<vda5050_core::types::Order>());
       },
-      py::arg("manufacturer"), py::arg("serial_number"), py::arg("order"))
+      py::arg("manufacturer"), py::arg("serial_number"), py::arg("order"),
+      py::call_guard<py::gil_scoped_release>())
     .def(
       "assign_order",
       [](VDA5050Master& self, const std::string& mfg,
@@ -283,7 +298,8 @@ void bind_master(py::module_& m)
         return self.assign_order(
           mfg, serial, order_json.get<vda5050_core::types::Order>());
       },
-      py::arg("manufacturer"), py::arg("serial_number"), py::arg("order"))
+      py::arg("manufacturer"), py::arg("serial_number"), py::arg("order"),
+      py::call_guard<py::gil_scoped_release>())
     .def(
       "publish_instant_actions",
       [](VDA5050Master& self, const std::string& mfg,
@@ -292,7 +308,8 @@ void bind_master(py::module_& m)
           mfg, serial,
           ia_json.get<vda5050_core::types::InstantActions>());
       },
-      py::arg("manufacturer"), py::arg("serial_number"), py::arg("actions"))
+      py::arg("manufacturer"), py::arg("serial_number"), py::arg("actions"),
+      py::call_guard<py::gil_scoped_release>())
     .def(
       "assign_instant_actions",
       [](VDA5050Master& self, const std::string& mfg,
@@ -301,13 +318,18 @@ void bind_master(py::module_& m)
           mfg, serial,
           ia_json.get<vda5050_core::types::InstantActions>());
       },
-      py::arg("manufacturer"), py::arg("serial_number"), py::arg("actions"))
+      py::arg("manufacturer"), py::arg("serial_number"), py::arg("actions"),
+      py::call_guard<py::gil_scoped_release>())
 
     // Topology
     .def(
       "load_layout_from_config",
       [](VDA5050Master& self, const std::string& path) {
-        auto result = self.load_layout_from_config(path);
+        vda5050_core::layout::LayoutLoadResult result;
+        {
+          py::gil_scoped_release release;
+          result = self.load_layout_from_config(path);
+        }
         py::list errors;
         for (const auto& e : result.errors) {
           errors.append(e.description);
@@ -319,7 +341,9 @@ void bind_master(py::module_& m)
       },
       py::arg("path"))
 
-    // Raw message callbacks
+    // Raw message callbacks — callbacks fire on the MQTT I/O thread; pybind11
+    // functional.h wraps the Python callable in a std::function that reacquires
+    // the GIL before invoking it.
     .def("on_state", &VDA5050Master::on_state)
     .def("on_connection", &VDA5050Master::on_connection)
     .def("on_factsheet", &VDA5050Master::on_factsheet)
