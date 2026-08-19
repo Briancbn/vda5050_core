@@ -64,16 +64,6 @@ jobs:
       - name: Run tests
         run: uv run pytest
 
-      - name: Check stale stubs
-        run: |
-          uv run scripts/generate_stubs.py vda5050_core -o python
-          if git diff --quiet python/vda5050_core; then
-            echo "Stubs are up-to-date!"
-            exit 0
-          fi
-          echo "Stubs are stale!!"
-          exit 1
-
   stub-test:
     name: Check Stale Stubs
     runs-on: ubuntu-latest
@@ -114,5 +104,5 @@ jobs:
             echo "Stubs are up-to-date!"
             exit 0
           fi
-          echo "Stubs are stale!!"
+          echo "Stubs are stale!!" >&2
           exit 1
