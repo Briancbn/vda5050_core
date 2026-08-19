@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import glob
 import sys
 from pathlib import Path
 
@@ -74,7 +73,7 @@ def post_main():
 
     # Find all .log files recursively
     print(f"processing stub files (.pyi) in {output_dir}")
-    for file_path in glob.iglob(f"{output_dir}/**/*.pyi", recursive=True):
+    for file_path in Path(output_dir).glob("**/*.pyi"):
         _add_header(header, file_path)
 
     print("post-processing: done")
