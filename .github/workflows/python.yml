@@ -7,7 +7,7 @@ on:
     branches:
       - main
       - develop
-      - feat/bn/add-cibw-support-macos-test
+      - feat/bn/add-cibw-support-38-arm
 
 defaults:
   run:
@@ -69,21 +69,12 @@ jobs:
       fail-fast: false
       matrix:
         python:
-          - "cp310"
-          - "cp311"
-          - "cp312"
-          - "cp313"
-          - "cp314"
-          - "cp314t"
-          - "cp315"
-          - "cp315t"
+          - "cp38"
         buildplat:
           - [ubuntu-latest, manylinux_x86_64]
           - [ubuntu-latest, musllinux_x86_64]
           - [ubuntu-24.04-arm, manylinux_aarch64]
           - [ubuntu-24.04-arm, musllinux_aarch64]
-          - [macos-15-intel, macosx_x86_64]
-          - [macos-14, macosx_arm64]
     runs-on: ${{ matrix.buildplat[0] }}
     steps:
       - uses: actions/checkout@v6
@@ -105,7 +96,7 @@ jobs:
 
       - name: Build wheels
         run: >
-          uvx cibuildwheel
+          uvx --with "cibuildwheel<4.0" cibuildwheel
           --only "${{ matrix.python }}-${{ matrix.buildplat[1] }}"
           --output-dir ../wheelhouse
 

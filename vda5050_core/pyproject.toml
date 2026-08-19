@@ -12,7 +12,7 @@ authors = [
   { name = "Saurabh Kamat", email = "saurabh_kamat@a-star.edu.sg" },
   { name = "Tinapat Game Limsila", email = "limsila.limsila@gmail.com" },
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.8"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python :: 3 :: Only",
