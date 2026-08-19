@@ -73,3 +73,46 @@ jobs:
           fi
           echo "Stubs are stale!!"
           exit 1
+
+  stub-test:
+    name: Check Stale Stubs
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vda5050_core
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12"]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install C++ dependencies
+        run: |
+          sudo apt-get update -qq -y
+          sudo apt-get install -qq -y \
+            libpaho-mqtt-dev libpaho-mqttpp-dev \
+            libfmt-dev \
+            nlohmann-json3-dev \
+            pybind11-json-dev
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: "Install UV"
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+
+      - name: Install package and test dependencies
+        run: uv sync --group dev
+
+      - name: Check stale stubs
+        run: |
+          uv run scripts/generate_stubs.py vda5050_core -o python
+          if git diff --quiet python/vda5050_core; then
+            echo "Stubs are up-to-date!"
+            exit 0
+          fi
+          echo "Stubs are stale!!"
+          exit 1
