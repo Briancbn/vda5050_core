@@ -70,4 +70,5 @@ jobs:
             echo "Stubs are up-to-date!"
             exit 0
           fi
+          echo "Stubs are stale!!"
           exit 1
