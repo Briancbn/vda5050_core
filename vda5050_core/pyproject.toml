@@ -62,21 +62,3 @@ cache-keys = [
 
 [tool.ruff]
 extend-exclude = ["*.pyi"]
-
-# [tool.pytest.ini_options]
-# minversion = "8.0"
-# addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
-# xfail_strict = true
-# log_level = "INFO"
-# filterwarnings = [
-#   "error",
-#   "ignore::pytest.PytestCacheWarning",
-# ]
-# testpaths = ["tests"]
-# 
-# 
-# [tool.cibuildwheel]
-# build-frontend = "build[uv]"
-# test-command = "python -m pytest vda5050_core/python/tests"
-# test-sources = ["vda5050_core/python/pyproject.toml", "vda5050_core/python/tests"]
-# test-groups = ["test"]
