@@ -41,7 +41,7 @@ def _add_header(header, file):
         f.write(header + "\n" + content)
 
 
-def _get_outout_dir():
+def _get_output_dir():
     for i in range(len(sys.argv)):
         # reverse the search for the last defined option
         index = len(sys.argv) - i - 1
@@ -67,7 +67,7 @@ def post_main():
 
     print("post-processing: adding headers...")
 
-    output_dir = _get_outout_dir()
+    output_dir = _get_output_dir()
     header = _get_header(HEADER_FILE)
     print(f"headers found in {HEADER_FILE}")
 
