@@ -151,7 +151,7 @@ using vda5050_core::types::WheelDefinitionType;
 
 void bind_types(py::module_& m)
 {
-  auto m_types = m.def_submodule("types", "Native VDA5050 client API");
+  auto m_types = m.def_submodule("types", "VDA5050 types");
 
   py::enum_<ActionStatus>(m_types, "ActionStatus")
     .value("WAITING", ActionStatus::WAITING)
