@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(vda5050_core)
+project(vda5050_core VERSION 0.0.0)
 
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
@@ -9,7 +9,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-find_package(ament_cmake REQUIRED)
 find_package(PahoMqttCpp REQUIRED)
 find_package(fmt REQUIRED)
 find_package(nlohmann_json REQUIRED)
@@ -246,15 +245,13 @@ install(
   RUNTIME DESTINATION bin
 )
 
-ament_export_targets(export_${PROJECT_NAME}
-  HAS_LIBRARY_TARGET
+# Export the targets and generate a plain CMake package config so consumers can
+# `find_package(vda5050_core)` and link `vda5050_core::<component>`.
+install(EXPORT export_${PROJECT_NAME}
   NAMESPACE ${PROJECT_NAME}::
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+  FILE ${PROJECT_NAME}Targets.cmake
 )
-ament_export_dependencies(PahoMqttCpp fmt nlohmann_json)
-
-if(ENABLE_ROS2)
-  ament_export_dependencies(vda5050_interfaces)
-endif()
 
 option(BUILD_EXAMPLES "Build examples" ON)
 
@@ -265,31 +262,43 @@ endif()
 option(BUILD_TESTING "Build tests" ON)
 
 if(BUILD_TESTING)
-  include(cmake/vda5050_ament_lint_common.cmake)
-  vda5050_ament_lint_common()
+  enable_testing()
 
-  find_package(ament_cmake_gmock REQUIRED)
+  # In ROS2 environment, keep the ament linters and register tests with
+  # the ament backends (selected inside vda5050_add_gtest/gmock by the
+  # ament_cmake_FOUND variables set here).
+  find_package(ament_cmake QUIET)
+  if(ament_cmake_FOUND)
+    find_package(ament_cmake_gtest REQUIRED)
+    find_package(ament_cmake_gmock REQUIRED)
+
+    include(cmake/vda5050_ament_lint_common.cmake)
+    vda5050_ament_lint_common()
+  endif()
+
+  include(cmake/vda5050_add_gmock.cmake)
+  include(cmake/vda5050_add_gtest.cmake)
 
   set(json_tests test/json_utils/test_json_utils.cpp)
   if(ENABLE_ROS2)
     list(APPEND json_tests test/json_utils/test_json_utils_ros2.cpp)
   endif()
-  ament_add_gmock(test_json_utils ${json_tests})
+  vda5050_add_gmock(test_json_utils ${json_tests})
   target_link_libraries(test_json_utils vda5050_core::json_utils)
 
-  ament_add_gmock(test_logger
+  vda5050_add_gmock(test_logger
     test/logger/test_unit_default_logger.cpp
     test/logger/test_unit_logger.cpp
   )
   target_link_libraries(test_logger vda5050_core::logger)
 
-  ament_add_gmock(test_transport
+  vda5050_add_gmock(test_transport
     test/transport/test_unit_mqtt_client_interface.cpp
     test/transport/test_integration_paho_mqtt_client.cpp
   )
   target_link_libraries(test_transport vda5050_core::transport)
 
-  ament_add_gmock(test_client
+  vda5050_add_gmock(test_client
     test/client/test_order_types.cpp
     test/client/test_order_execution_resource.cpp
     test/client/test_agv_context.cpp
@@ -309,7 +318,7 @@ if(BUILD_TESTING)
     vda5050_core::client
   )
 
-  ament_add_gmock(test_execution
+  vda5050_add_gmock(test_execution
     test/execution/test_engine.cpp
     test/execution/test_event_queue.cpp
     test/execution/test_handler.cpp
@@ -318,7 +327,7 @@ if(BUILD_TESTING)
   )
   target_link_libraries(test_execution vda5050_core::execution)
 
-  ament_add_gmock(test_master_comm
+  vda5050_add_gmock(test_master_comm
     test/master/test_integration_heartbeat.cpp
     test/master/test_integration_master_logic.cpp
     test/master/test_integration_master_mqtt.cpp
@@ -326,7 +335,7 @@ if(BUILD_TESTING)
   )
   target_link_libraries(test_master_comm vda5050_core::master)
 
-  ament_add_gmock(test_master_integration
+  vda5050_add_gmock(test_master_integration
     test/master/test_integration_master_assign_order.cpp
     test/master/test_integration_master_assign_instant_actions.cpp
     test/master/test_integration_master_mode_handling.cpp
@@ -336,7 +345,7 @@ if(BUILD_TESTING)
   )
   target_link_libraries(test_master_integration vda5050_core::master)
 
-  ament_add_gmock(test_master_agv
+  vda5050_add_gmock(test_master_agv
     test/master/test_unit_agv_connection_state.cpp
     test/master/test_unit_agv_operational_state.cpp
     test/master/test_unit_agv_lifecycle.cpp
@@ -345,12 +354,12 @@ if(BUILD_TESTING)
   )
   target_link_libraries(test_master_agv vda5050_core::master)
 
-  ament_add_gmock(test_master_context
+  vda5050_add_gmock(test_master_context
     test/master/test_unit_master_context.cpp
   )
   target_link_libraries(test_master_context vda5050_core::master)
 
-  ament_add_gmock(test_validation
+  vda5050_add_gmock(test_validation
     test/validation/test_unit_content_validator.cpp
     test/validation/test_unit_order_graph_validator.cpp
     test/validation/test_unit_pre_send_validator.cpp
@@ -363,40 +372,59 @@ if(BUILD_TESTING)
   )
   target_link_libraries(test_validation vda5050_core::validation)
 
-  ament_add_gmock(test_layout_loader
+  vda5050_add_gmock(test_layout_loader
     test/layout/test_unit_loader.cpp
   )
   target_link_libraries(test_layout_loader vda5050_core::layout)
   target_compile_definitions(test_layout_loader PRIVATE
     VDA5050_CORE__SAMPLE_LAYOUT_PATH="${CMAKE_CURRENT_SOURCE_DIR}/test/layout/data/sample_layout.json")
 
-  ament_add_gmock(test_layout_graph
+  vda5050_add_gmock(test_layout_graph
     test/layout/test_unit_graph.cpp
   )
   target_link_libraries(test_layout_graph vda5050_core::layout)
   target_compile_definitions(test_layout_graph PRIVATE
     VDA5050_CORE__SAMPLE_LAYOUT_PATH="${CMAKE_CURRENT_SOURCE_DIR}/test/layout/data/sample_layout.json")
 
-  ament_add_gmock(test_master_order
+  vda5050_add_gmock(test_master_order
     test/master/test_unit_order_publisher.cpp
     test/master/test_unit_order_lifecycle_manager.cpp
     test/master/test_unit_order_stitcher.cpp
   )
   target_link_libraries(test_master_order vda5050_core::master)
 
-  ament_add_gmock(test_master_actions
+  vda5050_add_gmock(test_master_actions
     test/master/test_unit_action_factory.cpp
   )
   target_link_libraries(test_master_actions vda5050_core::master)
 endif()
 
-# Install linter macro
-install(
-  FILES
-    cmake/vda5050_ament_lint_common.cmake
-  DESTINATION share/${PROJECT_NAME}/cmake
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+)
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY SameMinorVersion
 )
 
-ament_package(
-  CONFIG_EXTRAS "vda5050_core-extras.cmake"
+# Install linter macro
+install(FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+  cmake/vda5050_ament_lint_common.cmake
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
+
+# Export ament index path
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/share/ament_index/resource_index/packages/${PROJECT_NAME} "")
+install(
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/share/ament_index/resource_index/packages/${PROJECT_NAME}
+  DESTINATION share/ament_index/resource_index/packages
+)
+
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/share/${PROJECT_NAME}/hook/ament_prefix_path.dsv "prepend-non-duplicate;AMENT_PREFIX_PATH;")
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/share/${PROJECT_NAME}/hook/ament_prefix_path.dsv DESTINATION share/${PROJECT_NAME}/hook)

@@ -1,0 +1,8 @@
+{
+    "type": "cmake",
+    "name": "vda5050_core",
+    "hooks": [
+      "share/vda5050_core/hook/ament_prefix_path.dsv", 
+      "share/vda5050_core/hook/pythonpath.dsv", 
+    ]
+}

@@ -16,18 +16,144 @@
  * limitations under the License.
  */
 
+#include <pybind11/functional.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+
 #include <algorithm>
+
+#include <pybind11_json/pybind11_json.hpp>
 
 #include "vda5050_core/execution/protocol_adapter.hpp"
 #include "vda5050_core/json_utils/serialization.hpp"
 #include "vda5050_core/transport/mqtt_client_interface.hpp"
 #include "vda5050_core/types/agv_position.hpp"
 
-#include "rmf_migration.hpp"
+#include "vda5050_core/rmf_migration.hpp"
+#include "vda5050_core_py/rmf_migration.hpp"
+
+namespace vda5050_core_py {
+
+using vda5050_core::rmf_migration::ActionExecutor;
+using vda5050_core::rmf_migration::ActivityIdentifier;
+using vda5050_core::rmf_migration::Adapter;
+using vda5050_core::rmf_migration::CommandExecution;
+using vda5050_core::rmf_migration::Destination;
+using vda5050_core::rmf_migration::FleetConfiguration;
+using vda5050_core::rmf_migration::FleetUpdateHandle;
+using vda5050_core::rmf_migration::LocalizationRequest;
+using vda5050_core::rmf_migration::NavigationRequest;
+using vda5050_core::rmf_migration::RobotCallbacks;
+using vda5050_core::rmf_migration::RobotConfiguration;
+using vda5050_core::rmf_migration::RobotState;
+using vda5050_core::rmf_migration::RobotUpdateHandle;
+using vda5050_core::rmf_migration::StopRequest;
+
+//=============================================================================
+void bind_rmf_migration(py::module_& m)
+{
+  auto m_rmf_migration =
+    m.def_submodule("rmf_migration", "Open-RMF style migration API");
+
+  py::class_<ActivityIdentifier, std::shared_ptr<ActivityIdentifier>>(
+    m_rmf_migration, "ActivityIdentifier")
+    .def("__eq__", &ActivityIdentifier::operator==)
+    .def("__ne__", &ActivityIdentifier::operator!=);
+
+  py::class_<RobotState>(m_rmf_migration, "RobotState")
+    .def(
+      py::init<std::string, std::array<double, 3>, double>(), py::arg("map"),
+      py::arg("position"), py::arg("battery_soc"))
+    .def_property("map", &RobotState::map, &RobotState::set_map)
+    .def_property("position", &RobotState::position, &RobotState::set_position)
+    .def_property(
+      "battery_state_of_charge", &RobotState::battery_state_of_charge,
+      &RobotState::set_battery_state_of_charge);
+
+  py::class_<RobotConfiguration>(m_rmf_migration, "RobotConfiguration")
+    .def(
+      py::init<std::string, std::string, std::string, std::string>(),
+      py::arg("manufacturer"), py::arg("serial_number"),
+      py::arg("interface_name") = "uagv", py::arg("version") = "2.0.0")
+    .def_readwrite("manufacturer", &RobotConfiguration::manufacturer)
+    .def_readwrite("serial_number", &RobotConfiguration::serial_number)
+    .def_readwrite("interface_name", &RobotConfiguration::interface_name)
+    .def_readwrite("version", &RobotConfiguration::version)
+    .def_readwrite("factsheet", &RobotConfiguration::factsheet);
+
+  py::class_<Destination>(m_rmf_migration, "Destination")
+    .def_property_readonly("map", &Destination::map)
+    .def_property_readonly("position", &Destination::position)
+    .def_property_readonly("xy", &Destination::xy)
+    .def_property_readonly("yaw", &Destination::yaw)
+    .def_property_readonly("graph_index", &Destination::graph_index)
+    .def_property_readonly("name", &Destination::name)
+    .def_property_readonly("speed_limit", &Destination::speed_limit);
+
+  py::class_<CommandExecution>(m_rmf_migration, "CommandExecution")
+    .def("finished", &CommandExecution::finished)
+    .def("failed", &CommandExecution::failed)
+    .def("okay", &CommandExecution::okay)
+    .def("is_finished", &CommandExecution::is_finished)
+    .def_property_readonly("identifier", &CommandExecution::identifier);
+
+  py::class_<RobotCallbacks>(m_rmf_migration, "RobotCallbacks")
+    .def(
+      py::init<NavigationRequest, StopRequest, ActionExecutor>(),
+      py::arg("navigate"), py::arg("stop"), py::arg("action_executor"))
+    .def_property_readonly("navigate", &RobotCallbacks::navigate)
+    .def_property_readonly("stop", &RobotCallbacks::stop)
+    .def_property_readonly("action_executor", &RobotCallbacks::action_executor)
+    .def_property(
+      "localize", &RobotCallbacks::localize,
+      &RobotCallbacks::with_localization);
+
+  py::class_<RobotUpdateHandle, std::shared_ptr<RobotUpdateHandle>>(
+    m_rmf_migration, "RobotUpdateHandle")
+    .def("update", &RobotUpdateHandle::update)
+    .def("more", [](RobotUpdateHandle& self) { return self.more(); });
+
+  py::class_<FleetConfiguration>(m_rmf_migration, "FleetConfiguration")
+    .def(
+      py::init<std::string, std::string, std::string, int>(),
+      py::arg("fleet_name"), py::arg("broker_uri"), py::arg("client_id_prefix"),
+      py::arg("update_interval") = 30)
+    .def_property(
+      "fleet_name", &FleetConfiguration::fleet_name,
+      &FleetConfiguration::set_fleet_name)
+    .def_property(
+      "broker_uri", &FleetConfiguration::broker_uri,
+      &FleetConfiguration::set_broker_uri)
+    .def_property(
+      "client_id_prefix", &FleetConfiguration::client_id_prefix,
+      &FleetConfiguration::set_client_id_prefix)
+    .def_property(
+      "update_interval", &FleetConfiguration::update_interval,
+      &FleetConfiguration::set_update_interval)
+    .def_property_readonly("known_robots", &FleetConfiguration::known_robots)
+    .def(
+      "add_known_robot_configuration",
+      &FleetConfiguration::add_known_robot_configuration)
+    .def(
+      "get_known_robot_configuration",
+      &FleetConfiguration::get_known_robot_configuration);
+
+  py::class_<FleetUpdateHandle, std::shared_ptr<FleetUpdateHandle>>(
+    m_rmf_migration, "FleetUpdateHandle")
+    .def("add_robot", &FleetUpdateHandle::add_robot);
+
+  py::class_<Adapter, std::shared_ptr<Adapter>>(m_rmf_migration, "Adapter")
+    .def_static("make", &Adapter::make)
+    .def(
+      "add_vda5050_fleet", &Adapter::add_vda5050_fleet,
+      py::arg("configuration"))
+    .def("start", &Adapter::start)
+    .def("stop", &Adapter::stop);
+}
+
+}  // namespace vda5050_core_py
 
 namespace vda5050_core {
-
-namespace python {
 
 namespace rmf_migration {
 
@@ -548,5 +674,4 @@ Adapter::Adapter()
 }
 
 }  // namespace rmf_migration
-}  // namespace python
 }  // namespace vda5050_core
