@@ -148,40 +148,135 @@ using vda5050_core::types::Visualization;
 using vda5050_core::types::WheelDefinition;
 using vda5050_core::types::WheelDefinitionType;
 
-void bind_types(py::module_& m)
-{
-  auto m_types = m.def_submodule("types", "VDA5050 types");
+namespace {
 
-  py::enum_<ActionStatus>(m_types, "ActionStatus")
+// ── Enums ─────────────────────────────────────────────────────────────────────
+
+void bind_types_action_status(py::module_& m)
+{
+  py::enum_<ActionStatus>(m, "ActionStatus")
     .value("WAITING", ActionStatus::WAITING)
     .value("INITIALIZING", ActionStatus::INITIALIZING)
     .value("RUNNING", ActionStatus::RUNNING)
     .value("PAUSED", ActionStatus::PAUSED)
     .value("FINISHED", ActionStatus::FINISHED)
     .value("FAILED", ActionStatus::FAILED);
+}
 
-  py::enum_<EStop>(m_types, "EStop")
+void bind_types_e_stop(py::module_& m)
+{
+  py::enum_<EStop>(m, "EStop")
     .value("AUTOACK", EStop::AUTOACK)
     .value("MANUAL", EStop::MANUAL)
     .value("REMOTE", EStop::REMOTE)
     .value("NONE", EStop::NONE);
+}
 
-  py::enum_<ErrorLevel>(m_types, "ErrorLevel")
+void bind_types_error_level(py::module_& m)
+{
+  py::enum_<ErrorLevel>(m, "ErrorLevel")
     .value("WARNING", ErrorLevel::WARNING)
     .value("FATAL", ErrorLevel::FATAL);
+}
 
-  py::enum_<InfoLevel>(m_types, "InfoLevel")
+void bind_types_info_level(py::module_& m)
+{
+  py::enum_<InfoLevel>(m, "InfoLevel")
     .value("DEBUG", InfoLevel::DEBUG)
     .value("INFO", InfoLevel::INFO);
+}
 
-  py::enum_<OperatingMode>(m_types, "OperatingMode")
+void bind_types_operating_mode(py::module_& m)
+{
+  py::enum_<OperatingMode>(m, "OperatingMode")
     .value("AUTOMATIC", OperatingMode::AUTOMATIC)
     .value("SEMIAUTOMATIC", OperatingMode::SEMIAUTOMATIC)
     .value("MANUAL", OperatingMode::MANUAL)
     .value("SERVICE", OperatingMode::SERVICE)
     .value("TEACHIN", OperatingMode::TEACHIN);
+}
 
-  py::class_<ActionState>(m_types, "ActionState")
+void bind_types_blocking_type(py::module_& m)
+{
+  py::enum_<BlockingType>(m, "BlockingType")
+    .value("NONE", BlockingType::NONE)
+    .value("SOFT", BlockingType::SOFT)
+    .value("HARD", BlockingType::HARD);
+}
+
+void bind_types_connection_state(py::module_& m)
+{
+  py::enum_<ConnectionState>(m, "ConnectionState")
+    .value("ONLINE", ConnectionState::ONLINE)
+    .value("OFFLINE", ConnectionState::OFFLINE)
+    .value("CONNECTIONBROKEN", ConnectionState::CONNECTIONBROKEN);
+}
+
+void bind_types_orientation_type(py::module_& m)
+{
+  py::enum_<OrientationType>(m, "OrientationType")
+    .value("GLOBAL", OrientationType::GLOBAL)
+    .value("TANGENTIAL", OrientationType::TANGENTIAL);
+}
+
+void bind_types_value_data_type(py::module_& m)
+{
+  py::enum_<ValueDataType>(m, "ValueDataType")
+    .value("BOOL", ValueDataType::BOOL)
+    .value("NUMBER", ValueDataType::NUMBER)
+    .value("INTEGER", ValueDataType::INTEGER)
+    .value("FLOAT", ValueDataType::FLOAT)
+    .value("STRING", ValueDataType::STRING)
+    .value("OBJECT", ValueDataType::OBJECT)
+    .value("ARRAY", ValueDataType::ARRAY);
+}
+
+void bind_types_action_scope(py::module_& m)
+{
+  py::enum_<ActionScope>(m, "ActionScope")
+    .value("INSTANT", ActionScope::INSTANT)
+    .value("NODE", ActionScope::NODE)
+    .value("EDGE", ActionScope::EDGE);
+}
+
+void bind_types_support(py::module_& m)
+{
+  py::enum_<Support>(m, "Support")
+    .value("SUPPORTED", Support::SUPPORTED)
+    .value("REQUIRED", Support::REQUIRED);
+}
+
+void bind_types_agv_kinematic(py::module_& m)
+{
+  py::enum_<AGVKinematic>(m, "AGVKinematic")
+    .value("DIFF", AGVKinematic::DIFF)
+    .value("OMNI", AGVKinematic::OMNI)
+    .value("THREEWHEEL", AGVKinematic::THREEWHEEL);
+}
+
+void bind_types_agv_class(py::module_& m)
+{
+  py::enum_<AGVClass>(m, "AGVClass")
+    .value("FORKLIFT", AGVClass::FORKLIFT)
+    .value("CONVEYOR", AGVClass::CONVEYOR)
+    .value("TUGGER", AGVClass::TUGGER)
+    .value("CARRIER", AGVClass::CARRIER);
+}
+
+void bind_types_wheel_definition_type(py::module_& m)
+{
+  py::enum_<WheelDefinitionType>(m, "WheelDefinitionType")
+    .value("DRIVE", WheelDefinitionType::DRIVE)
+    .value("CASTER", WheelDefinitionType::CASTER)
+    .value("FIXED", WheelDefinitionType::FIXED)
+    .value("MECANUM", WheelDefinitionType::MECANUM);
+}
+
+// ── Structs ───────────────────────────────────────────────────────────────────
+
+void bind_types_action_state(py::module_& m)
+{
+  py::class_<ActionState>(m, "ActionState")
     .def(py::init<>())
     .def_readwrite("action_id", &ActionState::action_id)
     .def_readwrite("action_type", &ActionState::action_type)
@@ -193,8 +288,11 @@ void bind_types(py::module_& m)
     .def("json", [](const ActionState& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> ActionState { return j; });
+}
 
-  py::class_<BatteryState>(m_types, "BatteryState")
+void bind_types_battery_state(py::module_& m)
+{
+  py::class_<BatteryState>(m, "BatteryState")
     .def(py::init<>())
     .def_readwrite("battery_charge", &BatteryState::battery_charge)
     .def_readwrite("battery_voltage", &BatteryState::battery_voltage)
@@ -207,8 +305,11 @@ void bind_types(py::module_& m)
       "json", [](const BatteryState& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> BatteryState { return j; });
+}
 
-  py::class_<AGVPosition>(m_types, "AGVPosition")
+void bind_types_agv_position(py::module_& m)
+{
+  py::class_<AGVPosition>(m, "AGVPosition")
     .def(py::init<>())
     .def_readwrite("x", &AGVPosition::x)
     .def_readwrite("y", &AGVPosition::y)
@@ -223,8 +324,11 @@ void bind_types(py::module_& m)
     .def("json", [](const AGVPosition& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> AGVPosition { return j; });
+}
 
-  py::class_<Velocity>(m_types, "Velocity")
+void bind_types_velocity(py::module_& m)
+{
+  py::class_<Velocity>(m, "Velocity")
     .def(py::init<>())
     .def_readwrite("vx", &Velocity::vx)
     .def_readwrite("vy", &Velocity::vy)
@@ -234,8 +338,11 @@ void bind_types(py::module_& m)
     .def("json", [](const Velocity& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> Velocity { return j; });
+}
 
-  py::class_<SafetyState>(m_types, "SafetyState")
+void bind_types_safety_state(py::module_& m)
+{
+  py::class_<SafetyState>(m, "SafetyState")
     .def(py::init<>())
     .def_readwrite("e_stop", &SafetyState::e_stop)
     .def_readwrite("field_violation", &SafetyState::field_violation)
@@ -244,8 +351,11 @@ void bind_types(py::module_& m)
     .def("json", [](const SafetyState& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> SafetyState { return j; });
+}
 
-  py::class_<ErrorReference>(m_types, "ErrorReference")
+void bind_types_error_reference(py::module_& m)
+{
+  py::class_<ErrorReference>(m, "ErrorReference")
     .def(py::init<>())
     .def_readwrite("reference_key", &ErrorReference::reference_key)
     .def_readwrite("reference_value", &ErrorReference::reference_value)
@@ -255,8 +365,11 @@ void bind_types(py::module_& m)
       "json", [](const ErrorReference& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> ErrorReference { return j; });
+}
 
-  py::class_<Error>(m_types, "Error")
+void bind_types_error(py::module_& m)
+{
+  py::class_<Error>(m, "Error")
     .def(py::init<>())
     .def_readwrite("error_type", &Error::error_type)
     .def_readwrite("error_references", &Error::error_references)
@@ -267,8 +380,11 @@ void bind_types(py::module_& m)
     .def("json", [](const Error& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> Error { return j; });
+}
 
-  py::class_<InfoReference>(m_types, "InfoReference")
+void bind_types_info_reference(py::module_& m)
+{
+  py::class_<InfoReference>(m, "InfoReference")
     .def(py::init<>())
     .def_readwrite("reference_key", &InfoReference::reference_key)
     .def_readwrite("reference_value", &InfoReference::reference_value)
@@ -278,8 +394,11 @@ void bind_types(py::module_& m)
       "json", [](const InfoReference& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> InfoReference { return j; });
+}
 
-  py::class_<Info>(m_types, "Info")
+void bind_types_info(py::module_& m)
+{
+  py::class_<Info>(m, "Info")
     .def(py::init<>())
     .def_readwrite("info_type", &Info::info_type)
     .def_readwrite("info_references", &Info::info_references)
@@ -289,61 +408,11 @@ void bind_types(py::module_& m)
     .def("__ne__", &Info::operator!=)
     .def("json", [](const Info& self) -> nlohmann::json { return self; })
     .def_static("from_json", [](const nlohmann::json& j) -> Info { return j; });
+}
 
-  // ── New enums ─────────────────────────────────────────────────────────────
-
-  py::enum_<BlockingType>(m_types, "BlockingType")
-    .value("NONE", BlockingType::NONE)
-    .value("SOFT", BlockingType::SOFT)
-    .value("HARD", BlockingType::HARD);
-
-  py::enum_<ConnectionState>(m_types, "ConnectionState")
-    .value("ONLINE", ConnectionState::ONLINE)
-    .value("OFFLINE", ConnectionState::OFFLINE)
-    .value("CONNECTIONBROKEN", ConnectionState::CONNECTIONBROKEN);
-
-  py::enum_<OrientationType>(m_types, "OrientationType")
-    .value("GLOBAL", OrientationType::GLOBAL)
-    .value("TANGENTIAL", OrientationType::TANGENTIAL);
-
-  py::enum_<ValueDataType>(m_types, "ValueDataType")
-    .value("BOOL", ValueDataType::BOOL)
-    .value("NUMBER", ValueDataType::NUMBER)
-    .value("INTEGER", ValueDataType::INTEGER)
-    .value("FLOAT", ValueDataType::FLOAT)
-    .value("STRING", ValueDataType::STRING)
-    .value("OBJECT", ValueDataType::OBJECT)
-    .value("ARRAY", ValueDataType::ARRAY);
-
-  py::enum_<ActionScope>(m_types, "ActionScope")
-    .value("INSTANT", ActionScope::INSTANT)
-    .value("NODE", ActionScope::NODE)
-    .value("EDGE", ActionScope::EDGE);
-
-  py::enum_<Support>(m_types, "Support")
-    .value("SUPPORTED", Support::SUPPORTED)
-    .value("REQUIRED", Support::REQUIRED);
-
-  py::enum_<AGVKinematic>(m_types, "AGVKinematic")
-    .value("DIFF", AGVKinematic::DIFF)
-    .value("OMNI", AGVKinematic::OMNI)
-    .value("THREEWHEEL", AGVKinematic::THREEWHEEL);
-
-  py::enum_<AGVClass>(m_types, "AGVClass")
-    .value("FORKLIFT", AGVClass::FORKLIFT)
-    .value("CONVEYOR", AGVClass::CONVEYOR)
-    .value("TUGGER", AGVClass::TUGGER)
-    .value("CARRIER", AGVClass::CARRIER);
-
-  py::enum_<WheelDefinitionType>(m_types, "WheelDefinitionType")
-    .value("DRIVE", WheelDefinitionType::DRIVE)
-    .value("CASTER", WheelDefinitionType::CASTER)
-    .value("FIXED", WheelDefinitionType::FIXED)
-    .value("MECANUM", WheelDefinitionType::MECANUM);
-
-  // ── New structs ───────────────────────────────────────────────────────────
-
-  py::class_<ActionParameter>(m_types, "ActionParameter")
+void bind_types_action_parameter(py::module_& m)
+{
+  py::class_<ActionParameter>(m, "ActionParameter")
     .def(py::init<>())
     .def_readwrite("key", &ActionParameter::key)
     .def_readwrite("value", &ActionParameter::value)
@@ -355,8 +424,11 @@ void bind_types(py::module_& m)
     .def_static("from_json", [](const nlohmann::json& j) -> ActionParameter {
       return j;
     });
+}
 
-  py::class_<ActionParameterFactsheet>(m_types, "ActionParameterFactsheet")
+void bind_types_action_parameter_factsheet(py::module_& m)
+{
+  py::class_<ActionParameterFactsheet>(m, "ActionParameterFactsheet")
     .def(py::init<>())
     .def_readwrite("key", &ActionParameterFactsheet::key)
     .def_readwrite(
@@ -373,8 +445,11 @@ void bind_types(py::module_& m)
     .def_static(
       "from_json",
       [](const nlohmann::json& j) -> ActionParameterFactsheet { return j; });
+}
 
-  py::class_<BoundingBoxReference>(m_types, "BoundingBoxReference")
+void bind_types_bounding_box_reference(py::module_& m)
+{
+  py::class_<BoundingBoxReference>(m, "BoundingBoxReference")
     .def(py::init<>())
     .def_readwrite("x", &BoundingBoxReference::x)
     .def_readwrite("y", &BoundingBoxReference::y)
@@ -388,8 +463,11 @@ void bind_types(py::module_& m)
     .def_static(
       "from_json",
       [](const nlohmann::json& j) -> BoundingBoxReference { return j; });
+}
 
-  py::class_<ControlPoint>(m_types, "ControlPoint")
+void bind_types_control_point(py::module_& m)
+{
+  py::class_<ControlPoint>(m, "ControlPoint")
     .def(py::init<>())
     .def_readwrite("x", &ControlPoint::x)
     .def_readwrite("y", &ControlPoint::y)
@@ -400,8 +478,11 @@ void bind_types(py::module_& m)
       "json", [](const ControlPoint& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> ControlPoint { return j; });
+}
 
-  py::class_<PolygonPoint>(m_types, "PolygonPoint")
+void bind_types_polygon_point(py::module_& m)
+{
+  py::class_<PolygonPoint>(m, "PolygonPoint")
     .def(py::init<>())
     .def_readwrite("x", &PolygonPoint::x)
     .def_readwrite("y", &PolygonPoint::y)
@@ -411,8 +492,11 @@ void bind_types(py::module_& m)
       "json", [](const PolygonPoint& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> PolygonPoint { return j; });
+}
 
-  py::class_<Position>(m_types, "Position")
+void bind_types_position(py::module_& m)
+{
+  py::class_<Position>(m, "Position")
     .def(py::init<>())
     .def_readwrite("x", &Position::x)
     .def_readwrite("y", &Position::y)
@@ -422,8 +506,11 @@ void bind_types(py::module_& m)
     .def("json", [](const Position& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> Position { return j; });
+}
 
-  py::class_<LoadDimensions>(m_types, "LoadDimensions")
+void bind_types_load_dimensions(py::module_& m)
+{
+  py::class_<LoadDimensions>(m, "LoadDimensions")
     .def(py::init<>())
     .def_readwrite("length", &LoadDimensions::length)
     .def_readwrite("width", &LoadDimensions::width)
@@ -434,8 +521,11 @@ void bind_types(py::module_& m)
       "json", [](const LoadDimensions& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> LoadDimensions { return j; });
+}
 
-  py::class_<MaxStringLens>(m_types, "MaxStringLens")
+void bind_types_max_string_lens(py::module_& m)
+{
+  py::class_<MaxStringLens>(m, "MaxStringLens")
     .def(py::init<>())
     .def_readwrite("msg_len", &MaxStringLens::msg_len)
     .def_readwrite("topic_serial_len", &MaxStringLens::topic_serial_len)
@@ -450,8 +540,11 @@ void bind_types(py::module_& m)
       "json", [](const MaxStringLens& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> MaxStringLens { return j; });
+}
 
-  py::class_<MaxArrayLens>(m_types, "MaxArrayLens")
+void bind_types_max_array_lens(py::module_& m)
+{
+  py::class_<MaxArrayLens>(m, "MaxArrayLens")
     .def(py::init<>())
     .def_readwrite("order_nodes", &MaxArrayLens::order_nodes)
     .def_readwrite("order_edges", &MaxArrayLens::order_edges)
@@ -480,8 +573,11 @@ void bind_types(py::module_& m)
       "json", [](const MaxArrayLens& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> MaxArrayLens { return j; });
+}
 
-  py::class_<Timing>(m_types, "Timing")
+void bind_types_timing(py::module_& m)
+{
+  py::class_<Timing>(m, "Timing")
     .def(py::init<>())
     .def_readwrite("min_order_interval", &Timing::min_order_interval)
     .def_readwrite("min_state_interval", &Timing::min_state_interval)
@@ -492,8 +588,11 @@ void bind_types(py::module_& m)
     .def("json", [](const Timing& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> Timing { return j; });
+}
 
-  py::class_<PhysicalParameters>(m_types, "PhysicalParameters")
+void bind_types_physical_parameters(py::module_& m)
+{
+  py::class_<PhysicalParameters>(m, "PhysicalParameters")
     .def(py::init<>())
     .def_readwrite("speed_min", &PhysicalParameters::speed_min)
     .def_readwrite("speed_max", &PhysicalParameters::speed_max)
@@ -513,8 +612,11 @@ void bind_types(py::module_& m)
     .def_static("from_json", [](const nlohmann::json& j) -> PhysicalParameters {
       return j;
     });
+}
 
-  py::class_<Header>(m_types, "Header")
+void bind_types_header(py::module_& m)
+{
+  py::class_<Header>(m, "Header")
     .def(py::init<>())
     .def_readwrite("header_id", &Header::header_id)
     .def_property(
@@ -536,8 +638,11 @@ void bind_types(py::module_& m)
     .def("json", [](const Header& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> Header { return j; });
+}
 
-  py::class_<Action>(m_types, "Action")
+void bind_types_action(py::module_& m)
+{
+  py::class_<Action>(m, "Action")
     .def(py::init<>())
     .def_readwrite("action_type", &Action::action_type)
     .def_readwrite("action_id", &Action::action_id)
@@ -549,8 +654,11 @@ void bind_types(py::module_& m)
     .def("json", [](const Action& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> Action { return j; });
+}
 
-  py::class_<AGVAction>(m_types, "AGVAction")
+void bind_types_agv_action(py::module_& m)
+{
+  py::class_<AGVAction>(m, "AGVAction")
     .def(py::init<>())
     .def_readwrite("action_type", &AGVAction::action_type)
     .def_readwrite("action_scopes", &AGVAction::action_scopes)
@@ -563,8 +671,11 @@ void bind_types(py::module_& m)
     .def("json", [](const AGVAction& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> AGVAction { return j; });
+}
 
-  py::class_<OptionalParameter>(m_types, "OptionalParameter")
+void bind_types_optional_parameter(py::module_& m)
+{
+  py::class_<OptionalParameter>(m, "OptionalParameter")
     .def(py::init<>())
     .def_readwrite("parameter", &OptionalParameter::parameter)
     .def_readwrite("support", &OptionalParameter::support)
@@ -577,8 +688,11 @@ void bind_types(py::module_& m)
     .def_static("from_json", [](const nlohmann::json& j) -> OptionalParameter {
       return j;
     });
+}
 
-  py::class_<Trajectory>(m_types, "Trajectory")
+void bind_types_trajectory(py::module_& m)
+{
+  py::class_<Trajectory>(m, "Trajectory")
     .def(py::init<>())
     .def_readwrite("degree", &Trajectory::degree)
     .def_readwrite("knot_vector", &Trajectory::knot_vector)
@@ -588,8 +702,11 @@ void bind_types(py::module_& m)
     .def("json", [](const Trajectory& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> Trajectory { return j; });
+}
 
-  py::class_<Envelope2d>(m_types, "Envelope2d")
+void bind_types_envelope2d(py::module_& m)
+{
+  py::class_<Envelope2d>(m, "Envelope2d")
     .def(py::init<>())
     .def_readwrite("set", &Envelope2d::set)
     .def_readwrite("polygon_points", &Envelope2d::polygon_points)
@@ -599,8 +716,11 @@ void bind_types(py::module_& m)
     .def("json", [](const Envelope2d& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> Envelope2d { return j; });
+}
 
-  py::class_<Envelope3d>(m_types, "Envelope3d")
+void bind_types_envelope3d(py::module_& m)
+{
+  py::class_<Envelope3d>(m, "Envelope3d")
     .def(py::init<>())
     .def_readwrite("set", &Envelope3d::set)
     .def_readwrite("format", &Envelope3d::format)
@@ -612,8 +732,11 @@ void bind_types(py::module_& m)
     .def("json", [](const Envelope3d& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> Envelope3d { return j; });
+}
 
-  py::class_<NodePosition>(m_types, "NodePosition")
+void bind_types_node_position(py::module_& m)
+{
+  py::class_<NodePosition>(m, "NodePosition")
     .def(py::init<>())
     .def_readwrite("x", &NodePosition::x)
     .def_readwrite("y", &NodePosition::y)
@@ -630,8 +753,11 @@ void bind_types(py::module_& m)
       "json", [](const NodePosition& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> NodePosition { return j; });
+}
 
-  py::class_<Load>(m_types, "Load")
+void bind_types_load(py::module_& m)
+{
+  py::class_<Load>(m, "Load")
     .def(py::init<>())
     .def_readwrite("load_id", &Load::load_id)
     .def_readwrite("load_type", &Load::load_type)
@@ -643,8 +769,11 @@ void bind_types(py::module_& m)
     .def("__ne__", &Load::operator!=)
     .def("json", [](const Load& self) -> nlohmann::json { return self; })
     .def_static("from_json", [](const nlohmann::json& j) -> Load { return j; });
+}
 
-  py::class_<LoadSet>(m_types, "LoadSet")
+void bind_types_load_set(py::module_& m)
+{
+  py::class_<LoadSet>(m, "LoadSet")
     .def(py::init<>())
     .def_readwrite("set_name", &LoadSet::set_name)
     .def_readwrite("load_type", &LoadSet::load_type)
@@ -671,8 +800,11 @@ void bind_types(py::module_& m)
     .def("json", [](const LoadSet& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> LoadSet { return j; });
+}
 
-  py::class_<LoadSpecification>(m_types, "LoadSpecification")
+void bind_types_load_specification(py::module_& m)
+{
+  py::class_<LoadSpecification>(m, "LoadSpecification")
     .def(py::init<>())
     .def_readwrite("load_positions", &LoadSpecification::load_positions)
     .def_readwrite("load_sets", &LoadSpecification::load_sets)
@@ -684,8 +816,11 @@ void bind_types(py::module_& m)
     .def_static("from_json", [](const nlohmann::json& j) -> LoadSpecification {
       return j;
     });
+}
 
-  py::class_<WheelDefinition>(m_types, "WheelDefinition")
+void bind_types_wheel_definition(py::module_& m)
+{
+  py::class_<WheelDefinition>(m, "WheelDefinition")
     .def(py::init<>())
     .def_readwrite("type", &WheelDefinition::type)
     .def_readwrite("is_active_driven", &WheelDefinition::is_active_driven)
@@ -703,8 +838,11 @@ void bind_types(py::module_& m)
     .def_static("from_json", [](const nlohmann::json& j) -> WheelDefinition {
       return j;
     });
+}
 
-  py::class_<AGVGeometry>(m_types, "AGVGeometry")
+void bind_types_agv_geometry(py::module_& m)
+{
+  py::class_<AGVGeometry>(m, "AGVGeometry")
     .def(py::init<>())
     .def_readwrite("wheel_definitions", &AGVGeometry::wheel_definitions)
     .def_readwrite("envelopes2d", &AGVGeometry::envelopes2d)
@@ -714,8 +852,11 @@ void bind_types(py::module_& m)
     .def("json", [](const AGVGeometry& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> AGVGeometry { return j; });
+}
 
-  py::class_<EdgeState>(m_types, "EdgeState")
+void bind_types_edge_state(py::module_& m)
+{
+  py::class_<EdgeState>(m, "EdgeState")
     .def(py::init<>())
     .def_readwrite("edge_id", &EdgeState::edge_id)
     .def_readwrite("sequence_id", &EdgeState::sequence_id)
@@ -727,8 +868,11 @@ void bind_types(py::module_& m)
     .def("json", [](const EdgeState& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> EdgeState { return j; });
+}
 
-  py::class_<NodeState>(m_types, "NodeState")
+void bind_types_node_state(py::module_& m)
+{
+  py::class_<NodeState>(m, "NodeState")
     .def(py::init<>())
     .def_readwrite("node_id", &NodeState::node_id)
     .def_readwrite("sequence_id", &NodeState::sequence_id)
@@ -740,8 +884,11 @@ void bind_types(py::module_& m)
     .def("json", [](const NodeState& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> NodeState { return j; });
+}
 
-  py::class_<Edge>(m_types, "Edge")
+void bind_types_edge(py::module_& m)
+{
+  py::class_<Edge>(m, "Edge")
     .def(py::init<>())
     .def_readwrite("edge_id", &Edge::edge_id)
     .def_readwrite("sequence_id", &Edge::sequence_id)
@@ -764,8 +911,11 @@ void bind_types(py::module_& m)
     .def("__ne__", &Edge::operator!=)
     .def("json", [](const Edge& self) -> nlohmann::json { return self; })
     .def_static("from_json", [](const nlohmann::json& j) -> Edge { return j; });
+}
 
-  py::class_<Node>(m_types, "Node")
+void bind_types_node(py::module_& m)
+{
+  py::class_<Node>(m, "Node")
     .def(py::init<>())
     .def_readwrite("node_id", &Node::node_id)
     .def_readwrite("sequence_id", &Node::sequence_id)
@@ -777,8 +927,11 @@ void bind_types(py::module_& m)
     .def("__ne__", &Node::operator!=)
     .def("json", [](const Node& self) -> nlohmann::json { return self; })
     .def_static("from_json", [](const nlohmann::json& j) -> Node { return j; });
+}
 
-  py::class_<TypeSpecification>(m_types, "TypeSpecification")
+void bind_types_type_specification(py::module_& m)
+{
+  py::class_<TypeSpecification>(m, "TypeSpecification")
     .def(py::init<>())
     .def_readwrite("series_name", &TypeSpecification::series_name)
     .def_readwrite("agv_kinematic", &TypeSpecification::agv_kinematic)
@@ -795,8 +948,11 @@ void bind_types(py::module_& m)
     .def_static("from_json", [](const nlohmann::json& j) -> TypeSpecification {
       return j;
     });
+}
 
-  py::class_<ProtocolLimits>(m_types, "ProtocolLimits")
+void bind_types_protocol_limits(py::module_& m)
+{
+  py::class_<ProtocolLimits>(m, "ProtocolLimits")
     .def(py::init<>())
     .def_readwrite("max_string_lens", &ProtocolLimits::max_string_lens)
     .def_readwrite("max_array_lens", &ProtocolLimits::max_array_lens)
@@ -807,8 +963,11 @@ void bind_types(py::module_& m)
       "json", [](const ProtocolLimits& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> ProtocolLimits { return j; });
+}
 
-  py::class_<ProtocolFeatures>(m_types, "ProtocolFeatures")
+void bind_types_protocol_features(py::module_& m)
+{
+  py::class_<ProtocolFeatures>(m, "ProtocolFeatures")
     .def(py::init<>())
     .def_readwrite(
       "optional_parameters", &ProtocolFeatures::optional_parameters)
@@ -821,8 +980,11 @@ void bind_types(py::module_& m)
     .def_static("from_json", [](const nlohmann::json& j) -> ProtocolFeatures {
       return j;
     });
+}
 
-  py::class_<Connection>(m_types, "Connection")
+void bind_types_connection(py::module_& m)
+{
+  py::class_<Connection>(m, "Connection")
     .def(py::init<>())
     .def_readwrite("header", &Connection::header)
     .def_readwrite("connection_state", &Connection::connection_state)
@@ -831,8 +993,11 @@ void bind_types(py::module_& m)
     .def("json", [](const Connection& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> Connection { return j; });
+}
 
-  py::class_<InstantActions>(m_types, "InstantActions")
+void bind_types_instant_actions(py::module_& m)
+{
+  py::class_<InstantActions>(m, "InstantActions")
     .def(py::init<>())
     .def_readwrite("header", &InstantActions::header)
     .def_readwrite("actions", &InstantActions::actions)
@@ -842,8 +1007,11 @@ void bind_types(py::module_& m)
       "json", [](const InstantActions& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> InstantActions { return j; });
+}
 
-  py::class_<Order>(m_types, "Order")
+void bind_types_order(py::module_& m)
+{
+  py::class_<Order>(m, "Order")
     .def(py::init<>())
     .def_readwrite("header", &Order::header)
     .def_readwrite("order_id", &Order::order_id)
@@ -856,8 +1024,11 @@ void bind_types(py::module_& m)
     .def("json", [](const Order& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> Order { return j; });
+}
 
-  py::class_<Visualization>(m_types, "Visualization")
+void bind_types_visualization(py::module_& m)
+{
+  py::class_<Visualization>(m, "Visualization")
     .def(py::init<>())
     .def_readwrite("header", &Visualization::header)
     .def_readwrite("agv_position", &Visualization::agv_position)
@@ -868,8 +1039,11 @@ void bind_types(py::module_& m)
       "json", [](const Visualization& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> Visualization { return j; });
+}
 
-  py::class_<Factsheet>(m_types, "Factsheet")
+void bind_types_factsheet(py::module_& m)
+{
+  py::class_<Factsheet>(m, "Factsheet")
     .def(py::init<>())
     .def_readwrite("header", &Factsheet::header)
     .def_readwrite("type_specification", &Factsheet::type_specification)
@@ -885,8 +1059,11 @@ void bind_types(py::module_& m)
     .def("json", [](const Factsheet& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> Factsheet { return j; });
+}
 
-  py::class_<State>(m_types, "State")
+void bind_types_state(py::module_& m)
+{
+  py::class_<State>(m, "State")
     .def(py::init<>())
     .def_readwrite("header", &State::header)
     .def_readwrite("order_id", &State::order_id)
@@ -914,6 +1091,77 @@ void bind_types(py::module_& m)
     .def("json", [](const State& self) -> nlohmann::json { return self; })
     .def_static(
       "from_json", [](const nlohmann::json& j) -> State { return j; });
+}
+
+}  // namespace
+
+void bind_types(py::module_& m)
+{
+  auto m_types = m.def_submodule("types", "VDA5050 types");
+
+  // Enums
+  bind_types_action_status(m_types);
+  bind_types_e_stop(m_types);
+  bind_types_error_level(m_types);
+  bind_types_info_level(m_types);
+  bind_types_operating_mode(m_types);
+  bind_types_blocking_type(m_types);
+  bind_types_connection_state(m_types);
+  bind_types_orientation_type(m_types);
+  bind_types_value_data_type(m_types);
+  bind_types_action_scope(m_types);
+  bind_types_support(m_types);
+  bind_types_agv_kinematic(m_types);
+  bind_types_agv_class(m_types);
+  bind_types_wheel_definition_type(m_types);
+
+  // Structs
+  bind_types_action_state(m_types);
+  bind_types_battery_state(m_types);
+  bind_types_agv_position(m_types);
+  bind_types_velocity(m_types);
+  bind_types_safety_state(m_types);
+  bind_types_error_reference(m_types);
+  bind_types_error(m_types);
+  bind_types_info_reference(m_types);
+  bind_types_info(m_types);
+  bind_types_action_parameter(m_types);
+  bind_types_action_parameter_factsheet(m_types);
+  bind_types_bounding_box_reference(m_types);
+  bind_types_control_point(m_types);
+  bind_types_polygon_point(m_types);
+  bind_types_position(m_types);
+  bind_types_load_dimensions(m_types);
+  bind_types_max_string_lens(m_types);
+  bind_types_max_array_lens(m_types);
+  bind_types_timing(m_types);
+  bind_types_physical_parameters(m_types);
+  bind_types_header(m_types);
+  bind_types_action(m_types);
+  bind_types_agv_action(m_types);
+  bind_types_optional_parameter(m_types);
+  bind_types_trajectory(m_types);
+  bind_types_envelope2d(m_types);
+  bind_types_envelope3d(m_types);
+  bind_types_node_position(m_types);
+  bind_types_load(m_types);
+  bind_types_load_set(m_types);
+  bind_types_load_specification(m_types);
+  bind_types_wheel_definition(m_types);
+  bind_types_agv_geometry(m_types);
+  bind_types_edge_state(m_types);
+  bind_types_node_state(m_types);
+  bind_types_edge(m_types);
+  bind_types_node(m_types);
+  bind_types_type_specification(m_types);
+  bind_types_protocol_limits(m_types);
+  bind_types_protocol_features(m_types);
+  bind_types_connection(m_types);
+  bind_types_instant_actions(m_types);
+  bind_types_order(m_types);
+  bind_types_visualization(m_types);
+  bind_types_factsheet(m_types);
+  bind_types_state(m_types);
 }
 
 }  // namespace vda5050_core_py
