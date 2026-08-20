@@ -148,7 +148,6 @@ using vda5050_core::types::Visualization;
 using vda5050_core::types::WheelDefinition;
 using vda5050_core::types::WheelDefinitionType;
 
-
 void bind_types(py::module_& m)
 {
   auto m_types = m.def_submodule("types", "VDA5050 types");
@@ -192,7 +191,8 @@ void bind_types(py::module_& m)
     .def("__eq__", &ActionState::operator==)
     .def("__ne__", &ActionState::operator!=)
     .def("json", [](const ActionState& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> ActionState { return j; });
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> ActionState { return j; });
 
   py::class_<BatteryState>(m_types, "BatteryState")
     .def(py::init<>())
@@ -203,8 +203,10 @@ void bind_types(py::module_& m)
     .def_readwrite("reach", &BatteryState::reach)
     .def("__eq__", &BatteryState::operator==)
     .def("__ne__", &BatteryState::operator!=)
-    .def("json", [](const BatteryState& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> BatteryState { return j; });
+    .def(
+      "json", [](const BatteryState& self) -> nlohmann::json { return self; })
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> BatteryState { return j; });
 
   py::class_<AGVPosition>(m_types, "AGVPosition")
     .def(py::init<>())
@@ -219,7 +221,8 @@ void bind_types(py::module_& m)
     .def("__eq__", &AGVPosition::operator==)
     .def("__ne__", &AGVPosition::operator!=)
     .def("json", [](const AGVPosition& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> AGVPosition { return j; });
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> AGVPosition { return j; });
 
   py::class_<Velocity>(m_types, "Velocity")
     .def(py::init<>())
@@ -229,7 +232,8 @@ void bind_types(py::module_& m)
     .def("__eq__", &Velocity::operator==)
     .def("__ne__", &Velocity::operator!=)
     .def("json", [](const Velocity& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> Velocity { return j; });
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> Velocity { return j; });
 
   py::class_<SafetyState>(m_types, "SafetyState")
     .def(py::init<>())
@@ -238,7 +242,8 @@ void bind_types(py::module_& m)
     .def("__eq__", &SafetyState::operator==)
     .def("__ne__", &SafetyState::operator!=)
     .def("json", [](const SafetyState& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> SafetyState { return j; });
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> SafetyState { return j; });
 
   py::class_<ErrorReference>(m_types, "ErrorReference")
     .def(py::init<>())
@@ -246,8 +251,10 @@ void bind_types(py::module_& m)
     .def_readwrite("reference_value", &ErrorReference::reference_value)
     .def("__eq__", &ErrorReference::operator==)
     .def("__ne__", &ErrorReference::operator!=)
-    .def("json", [](const ErrorReference& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> ErrorReference { return j; });
+    .def(
+      "json", [](const ErrorReference& self) -> nlohmann::json { return self; })
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> ErrorReference { return j; });
 
   py::class_<Error>(m_types, "Error")
     .def(py::init<>())
@@ -258,7 +265,8 @@ void bind_types(py::module_& m)
     .def("__eq__", &Error::operator==)
     .def("__ne__", &Error::operator!=)
     .def("json", [](const Error& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> Error { return j; });
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> Error { return j; });
 
   py::class_<InfoReference>(m_types, "InfoReference")
     .def(py::init<>())
@@ -266,8 +274,10 @@ void bind_types(py::module_& m)
     .def_readwrite("reference_value", &InfoReference::reference_value)
     .def("__eq__", &InfoReference::operator==)
     .def("__ne__", &InfoReference::operator!=)
-    .def("json", [](const InfoReference& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> InfoReference { return j; });
+    .def(
+      "json", [](const InfoReference& self) -> nlohmann::json { return self; })
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> InfoReference { return j; });
 
   py::class_<Info>(m_types, "Info")
     .def(py::init<>())
@@ -339,19 +349,30 @@ void bind_types(py::module_& m)
     .def_readwrite("value", &ActionParameter::value)
     .def("__eq__", &ActionParameter::operator==)
     .def("__ne__", &ActionParameter::operator!=)
-    .def("json", [](const ActionParameter& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> ActionParameter { return j; });
+    .def(
+      "json",
+      [](const ActionParameter& self) -> nlohmann::json { return self; })
+    .def_static("from_json", [](const nlohmann::json& j) -> ActionParameter {
+      return j;
+    });
 
   py::class_<ActionParameterFactsheet>(m_types, "ActionParameterFactsheet")
     .def(py::init<>())
     .def_readwrite("key", &ActionParameterFactsheet::key)
-    .def_readwrite("value_data_type", &ActionParameterFactsheet::value_data_type)
+    .def_readwrite(
+      "value_data_type", &ActionParameterFactsheet::value_data_type)
     .def_readwrite("description", &ActionParameterFactsheet::description)
     .def_readwrite("is_optional", &ActionParameterFactsheet::is_optional)
     .def("__eq__", &ActionParameterFactsheet::operator==)
     .def("__ne__", &ActionParameterFactsheet::operator!=)
-    .def("json", [](const ActionParameterFactsheet& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> ActionParameterFactsheet { return j; });
+    .def(
+      "json",
+      [](const ActionParameterFactsheet& self) -> nlohmann::json {
+        return self;
+      })
+    .def_static(
+      "from_json",
+      [](const nlohmann::json& j) -> ActionParameterFactsheet { return j; });
 
   py::class_<BoundingBoxReference>(m_types, "BoundingBoxReference")
     .def(py::init<>())
@@ -361,8 +382,12 @@ void bind_types(py::module_& m)
     .def_readwrite("theta", &BoundingBoxReference::theta)
     .def("__eq__", &BoundingBoxReference::operator==)
     .def("__ne__", &BoundingBoxReference::operator!=)
-    .def("json", [](const BoundingBoxReference& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> BoundingBoxReference { return j; });
+    .def(
+      "json",
+      [](const BoundingBoxReference& self) -> nlohmann::json { return self; })
+    .def_static(
+      "from_json",
+      [](const nlohmann::json& j) -> BoundingBoxReference { return j; });
 
   py::class_<ControlPoint>(m_types, "ControlPoint")
     .def(py::init<>())
@@ -371,8 +396,10 @@ void bind_types(py::module_& m)
     .def_readwrite("weight", &ControlPoint::weight)
     .def("__eq__", &ControlPoint::operator==)
     .def("__ne__", &ControlPoint::operator!=)
-    .def("json", [](const ControlPoint& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> ControlPoint { return j; });
+    .def(
+      "json", [](const ControlPoint& self) -> nlohmann::json { return self; })
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> ControlPoint { return j; });
 
   py::class_<PolygonPoint>(m_types, "PolygonPoint")
     .def(py::init<>())
@@ -380,8 +407,10 @@ void bind_types(py::module_& m)
     .def_readwrite("y", &PolygonPoint::y)
     .def("__eq__", &PolygonPoint::operator==)
     .def("__ne__", &PolygonPoint::operator!=)
-    .def("json", [](const PolygonPoint& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> PolygonPoint { return j; });
+    .def(
+      "json", [](const PolygonPoint& self) -> nlohmann::json { return self; })
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> PolygonPoint { return j; });
 
   py::class_<Position>(m_types, "Position")
     .def(py::init<>())
@@ -391,7 +420,8 @@ void bind_types(py::module_& m)
     .def("__eq__", &Position::operator==)
     .def("__ne__", &Position::operator!=)
     .def("json", [](const Position& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> Position { return j; });
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> Position { return j; });
 
   py::class_<LoadDimensions>(m_types, "LoadDimensions")
     .def(py::init<>())
@@ -400,8 +430,10 @@ void bind_types(py::module_& m)
     .def_readwrite("height", &LoadDimensions::height)
     .def("__eq__", &LoadDimensions::operator==)
     .def("__ne__", &LoadDimensions::operator!=)
-    .def("json", [](const LoadDimensions& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> LoadDimensions { return j; });
+    .def(
+      "json", [](const LoadDimensions& self) -> nlohmann::json { return self; })
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> LoadDimensions { return j; });
 
   py::class_<MaxStringLens>(m_types, "MaxStringLens")
     .def(py::init<>())
@@ -414,8 +446,10 @@ void bind_types(py::module_& m)
     .def_readwrite("id_numerical_only", &MaxStringLens::id_numerical_only)
     .def("__eq__", &MaxStringLens::operator==)
     .def("__ne__", &MaxStringLens::operator!=)
-    .def("json", [](const MaxStringLens& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> MaxStringLens { return j; });
+    .def(
+      "json", [](const MaxStringLens& self) -> nlohmann::json { return self; })
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> MaxStringLens { return j; });
 
   py::class_<MaxArrayLens>(m_types, "MaxArrayLens")
     .def(py::init<>())
@@ -423,22 +457,29 @@ void bind_types(py::module_& m)
     .def_readwrite("order_edges", &MaxArrayLens::order_edges)
     .def_readwrite("node_actions", &MaxArrayLens::node_actions)
     .def_readwrite("edge_actions", &MaxArrayLens::edge_actions)
-    .def_readwrite("actions_actions_parameters", &MaxArrayLens::actions_actions_parameters)
+    .def_readwrite(
+      "actions_actions_parameters", &MaxArrayLens::actions_actions_parameters)
     .def_readwrite("instant_actions", &MaxArrayLens::instant_actions)
-    .def_readwrite("trajectory_knot_vector", &MaxArrayLens::trajectory_knot_vector)
-    .def_readwrite("trajectory_control_points", &MaxArrayLens::trajectory_control_points)
+    .def_readwrite(
+      "trajectory_knot_vector", &MaxArrayLens::trajectory_knot_vector)
+    .def_readwrite(
+      "trajectory_control_points", &MaxArrayLens::trajectory_control_points)
     .def_readwrite("state_node_states", &MaxArrayLens::state_node_states)
     .def_readwrite("state_edge_states", &MaxArrayLens::state_edge_states)
     .def_readwrite("state_loads", &MaxArrayLens::state_loads)
     .def_readwrite("state_action_states", &MaxArrayLens::state_action_states)
     .def_readwrite("state_errors", &MaxArrayLens::state_errors)
     .def_readwrite("state_information", &MaxArrayLens::state_information)
-    .def_readwrite("error_error_references", &MaxArrayLens::error_error_references)
-    .def_readwrite("information_info_references", &MaxArrayLens::information_info_references)
+    .def_readwrite(
+      "error_error_references", &MaxArrayLens::error_error_references)
+    .def_readwrite(
+      "information_info_references", &MaxArrayLens::information_info_references)
     .def("__eq__", &MaxArrayLens::operator==)
     .def("__ne__", &MaxArrayLens::operator!=)
-    .def("json", [](const MaxArrayLens& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> MaxArrayLens { return j; });
+    .def(
+      "json", [](const MaxArrayLens& self) -> nlohmann::json { return self; })
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> MaxArrayLens { return j; });
 
   py::class_<Timing>(m_types, "Timing")
     .def(py::init<>())
@@ -449,7 +490,8 @@ void bind_types(py::module_& m)
     .def("__eq__", &Timing::operator==)
     .def("__ne__", &Timing::operator!=)
     .def("json", [](const Timing& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> Timing { return j; });
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> Timing { return j; });
 
   py::class_<PhysicalParameters>(m_types, "PhysicalParameters")
     .def(py::init<>())
@@ -465,8 +507,12 @@ void bind_types(py::module_& m)
     .def_readwrite("angular_speed_max", &PhysicalParameters::angular_speed_max)
     .def("__eq__", &PhysicalParameters::operator==)
     .def("__ne__", &PhysicalParameters::operator!=)
-    .def("json", [](const PhysicalParameters& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> PhysicalParameters { return j; });
+    .def(
+      "json",
+      [](const PhysicalParameters& self) -> nlohmann::json { return self; })
+    .def_static("from_json", [](const nlohmann::json& j) -> PhysicalParameters {
+      return j;
+    });
 
   py::class_<Header>(m_types, "Header")
     .def(py::init<>())
@@ -474,8 +520,8 @@ void bind_types(py::module_& m)
     .def_property(
       "timestamp",
       [](const Header& self) -> double {
-        return std::chrono::duration<double>(
-          self.timestamp.time_since_epoch()).count();
+        return std::chrono::duration<double>(self.timestamp.time_since_epoch())
+          .count();
       },
       [](Header& self, double t) {
         self.timestamp = std::chrono::time_point<std::chrono::system_clock>(
@@ -488,7 +534,8 @@ void bind_types(py::module_& m)
     .def("__eq__", &Header::operator==)
     .def("__ne__", &Header::operator!=)
     .def("json", [](const Header& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> Header { return j; });
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> Header { return j; });
 
   py::class_<Action>(m_types, "Action")
     .def(py::init<>())
@@ -500,7 +547,8 @@ void bind_types(py::module_& m)
     .def("__eq__", &Action::operator==)
     .def("__ne__", &Action::operator!=)
     .def("json", [](const Action& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> Action { return j; });
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> Action { return j; });
 
   py::class_<AGVAction>(m_types, "AGVAction")
     .def(py::init<>())
@@ -513,7 +561,8 @@ void bind_types(py::module_& m)
     .def("__eq__", &AGVAction::operator==)
     .def("__ne__", &AGVAction::operator!=)
     .def("json", [](const AGVAction& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> AGVAction { return j; });
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> AGVAction { return j; });
 
   py::class_<OptionalParameter>(m_types, "OptionalParameter")
     .def(py::init<>())
@@ -522,8 +571,12 @@ void bind_types(py::module_& m)
     .def_readwrite("description", &OptionalParameter::description)
     .def("__eq__", &OptionalParameter::operator==)
     .def("__ne__", &OptionalParameter::operator!=)
-    .def("json", [](const OptionalParameter& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> OptionalParameter { return j; });
+    .def(
+      "json",
+      [](const OptionalParameter& self) -> nlohmann::json { return self; })
+    .def_static("from_json", [](const nlohmann::json& j) -> OptionalParameter {
+      return j;
+    });
 
   py::class_<Trajectory>(m_types, "Trajectory")
     .def(py::init<>())
@@ -533,7 +586,8 @@ void bind_types(py::module_& m)
     .def("__eq__", &Trajectory::operator==)
     .def("__ne__", &Trajectory::operator!=)
     .def("json", [](const Trajectory& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> Trajectory { return j; });
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> Trajectory { return j; });
 
   py::class_<Envelope2d>(m_types, "Envelope2d")
     .def(py::init<>())
@@ -543,7 +597,8 @@ void bind_types(py::module_& m)
     .def("__eq__", &Envelope2d::operator==)
     .def("__ne__", &Envelope2d::operator!=)
     .def("json", [](const Envelope2d& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> Envelope2d { return j; });
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> Envelope2d { return j; });
 
   py::class_<Envelope3d>(m_types, "Envelope3d")
     .def(py::init<>())
@@ -555,21 +610,26 @@ void bind_types(py::module_& m)
     .def("__eq__", &Envelope3d::operator==)
     .def("__ne__", &Envelope3d::operator!=)
     .def("json", [](const Envelope3d& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> Envelope3d { return j; });
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> Envelope3d { return j; });
 
   py::class_<NodePosition>(m_types, "NodePosition")
     .def(py::init<>())
     .def_readwrite("x", &NodePosition::x)
     .def_readwrite("y", &NodePosition::y)
     .def_readwrite("theta", &NodePosition::theta)
-    .def_readwrite("allowed_deviation_x_y", &NodePosition::allowed_deviation_x_y)
-    .def_readwrite("allowed_deviation_theta", &NodePosition::allowed_deviation_theta)
+    .def_readwrite(
+      "allowed_deviation_x_y", &NodePosition::allowed_deviation_x_y)
+    .def_readwrite(
+      "allowed_deviation_theta", &NodePosition::allowed_deviation_theta)
     .def_readwrite("map_id", &NodePosition::map_id)
     .def_readwrite("map_description", &NodePosition::map_description)
     .def("__eq__", &NodePosition::operator==)
     .def("__ne__", &NodePosition::operator!=)
-    .def("json", [](const NodePosition& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> NodePosition { return j; });
+    .def(
+      "json", [](const NodePosition& self) -> nlohmann::json { return self; })
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> NodePosition { return j; });
 
   py::class_<Load>(m_types, "Load")
     .def(py::init<>())
@@ -592,8 +652,10 @@ void bind_types(py::module_& m)
     .def_readwrite("bounding_box_reference", &LoadSet::bounding_box_reference)
     .def_readwrite("load_dimensions", &LoadSet::load_dimensions)
     .def_readwrite("max_weight", &LoadSet::max_weight)
-    .def_readwrite("min_load_handling_height", &LoadSet::min_load_handling_height)
-    .def_readwrite("max_load_handling_height", &LoadSet::max_load_handling_height)
+    .def_readwrite(
+      "min_load_handling_height", &LoadSet::min_load_handling_height)
+    .def_readwrite(
+      "max_load_handling_height", &LoadSet::max_load_handling_height)
     .def_readwrite("min_load_handling_depth", &LoadSet::min_load_handling_depth)
     .def_readwrite("max_load_handling_depth", &LoadSet::max_load_handling_depth)
     .def_readwrite("min_load_handling_tilt", &LoadSet::min_load_handling_tilt)
@@ -607,7 +669,8 @@ void bind_types(py::module_& m)
     .def("__eq__", &LoadSet::operator==)
     .def("__ne__", &LoadSet::operator!=)
     .def("json", [](const LoadSet& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> LoadSet { return j; });
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> LoadSet { return j; });
 
   py::class_<LoadSpecification>(m_types, "LoadSpecification")
     .def(py::init<>())
@@ -615,8 +678,12 @@ void bind_types(py::module_& m)
     .def_readwrite("load_sets", &LoadSpecification::load_sets)
     .def("__eq__", &LoadSpecification::operator==)
     .def("__ne__", &LoadSpecification::operator!=)
-    .def("json", [](const LoadSpecification& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> LoadSpecification { return j; });
+    .def(
+      "json",
+      [](const LoadSpecification& self) -> nlohmann::json { return self; })
+    .def_static("from_json", [](const nlohmann::json& j) -> LoadSpecification {
+      return j;
+    });
 
   py::class_<WheelDefinition>(m_types, "WheelDefinition")
     .def(py::init<>())
@@ -630,8 +697,12 @@ void bind_types(py::module_& m)
     .def_readwrite("constraints", &WheelDefinition::constraints)
     .def("__eq__", &WheelDefinition::operator==)
     .def("__ne__", &WheelDefinition::operator!=)
-    .def("json", [](const WheelDefinition& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> WheelDefinition { return j; });
+    .def(
+      "json",
+      [](const WheelDefinition& self) -> nlohmann::json { return self; })
+    .def_static("from_json", [](const nlohmann::json& j) -> WheelDefinition {
+      return j;
+    });
 
   py::class_<AGVGeometry>(m_types, "AGVGeometry")
     .def(py::init<>())
@@ -641,7 +712,8 @@ void bind_types(py::module_& m)
     .def("__eq__", &AGVGeometry::operator==)
     .def("__ne__", &AGVGeometry::operator!=)
     .def("json", [](const AGVGeometry& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> AGVGeometry { return j; });
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> AGVGeometry { return j; });
 
   py::class_<EdgeState>(m_types, "EdgeState")
     .def(py::init<>())
@@ -653,7 +725,8 @@ void bind_types(py::module_& m)
     .def("__eq__", &EdgeState::operator==)
     .def("__ne__", &EdgeState::operator!=)
     .def("json", [](const EdgeState& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> EdgeState { return j; });
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> EdgeState { return j; });
 
   py::class_<NodeState>(m_types, "NodeState")
     .def(py::init<>())
@@ -665,7 +738,8 @@ void bind_types(py::module_& m)
     .def("__eq__", &NodeState::operator==)
     .def("__ne__", &NodeState::operator!=)
     .def("json", [](const NodeState& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> NodeState { return j; });
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> NodeState { return j; });
 
   py::class_<Edge>(m_types, "Edge")
     .def(py::init<>())
@@ -715,8 +789,12 @@ void bind_types(py::module_& m)
     .def_readwrite("series_description", &TypeSpecification::series_description)
     .def("__eq__", &TypeSpecification::operator==)
     .def("__ne__", &TypeSpecification::operator!=)
-    .def("json", [](const TypeSpecification& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> TypeSpecification { return j; });
+    .def(
+      "json",
+      [](const TypeSpecification& self) -> nlohmann::json { return self; })
+    .def_static("from_json", [](const nlohmann::json& j) -> TypeSpecification {
+      return j;
+    });
 
   py::class_<ProtocolLimits>(m_types, "ProtocolLimits")
     .def(py::init<>())
@@ -725,17 +803,24 @@ void bind_types(py::module_& m)
     .def_readwrite("timing", &ProtocolLimits::timing)
     .def("__eq__", &ProtocolLimits::operator==)
     .def("__ne__", &ProtocolLimits::operator!=)
-    .def("json", [](const ProtocolLimits& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> ProtocolLimits { return j; });
+    .def(
+      "json", [](const ProtocolLimits& self) -> nlohmann::json { return self; })
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> ProtocolLimits { return j; });
 
   py::class_<ProtocolFeatures>(m_types, "ProtocolFeatures")
     .def(py::init<>())
-    .def_readwrite("optional_parameters", &ProtocolFeatures::optional_parameters)
+    .def_readwrite(
+      "optional_parameters", &ProtocolFeatures::optional_parameters)
     .def_readwrite("agv_actions", &ProtocolFeatures::agv_actions)
     .def("__eq__", &ProtocolFeatures::operator==)
     .def("__ne__", &ProtocolFeatures::operator!=)
-    .def("json", [](const ProtocolFeatures& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> ProtocolFeatures { return j; });
+    .def(
+      "json",
+      [](const ProtocolFeatures& self) -> nlohmann::json { return self; })
+    .def_static("from_json", [](const nlohmann::json& j) -> ProtocolFeatures {
+      return j;
+    });
 
   py::class_<Connection>(m_types, "Connection")
     .def(py::init<>())
@@ -744,7 +829,8 @@ void bind_types(py::module_& m)
     .def("__eq__", &Connection::operator==)
     .def("__ne__", &Connection::operator!=)
     .def("json", [](const Connection& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> Connection { return j; });
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> Connection { return j; });
 
   py::class_<InstantActions>(m_types, "InstantActions")
     .def(py::init<>())
@@ -752,8 +838,10 @@ void bind_types(py::module_& m)
     .def_readwrite("actions", &InstantActions::actions)
     .def("__eq__", &InstantActions::operator==)
     .def("__ne__", &InstantActions::operator!=)
-    .def("json", [](const InstantActions& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> InstantActions { return j; });
+    .def(
+      "json", [](const InstantActions& self) -> nlohmann::json { return self; })
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> InstantActions { return j; });
 
   py::class_<Order>(m_types, "Order")
     .def(py::init<>())
@@ -766,7 +854,8 @@ void bind_types(py::module_& m)
     .def("__eq__", &Order::operator==)
     .def("__ne__", &Order::operator!=)
     .def("json", [](const Order& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> Order { return j; });
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> Order { return j; });
 
   py::class_<Visualization>(m_types, "Visualization")
     .def(py::init<>())
@@ -775,8 +864,10 @@ void bind_types(py::module_& m)
     .def_readwrite("velocity", &Visualization::velocity)
     .def("__eq__", &Visualization::operator==)
     .def("__ne__", &Visualization::operator!=)
-    .def("json", [](const Visualization& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> Visualization { return j; });
+    .def(
+      "json", [](const Visualization& self) -> nlohmann::json { return self; })
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> Visualization { return j; });
 
   py::class_<Factsheet>(m_types, "Factsheet")
     .def(py::init<>())
@@ -787,11 +878,13 @@ void bind_types(py::module_& m)
     .def_readwrite("protocol_features", &Factsheet::protocol_features)
     .def_readwrite("agv_geometry", &Factsheet::agv_geometry)
     .def_readwrite("load_specification", &Factsheet::load_specification)
-    .def_readwrite("localization_parameters", &Factsheet::localization_parameters)
+    .def_readwrite(
+      "localization_parameters", &Factsheet::localization_parameters)
     .def("__eq__", &Factsheet::operator==)
     .def("__ne__", &Factsheet::operator!=)
     .def("json", [](const Factsheet& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> Factsheet { return j; });
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> Factsheet { return j; });
 
   py::class_<State>(m_types, "State")
     .def(py::init<>())
@@ -819,8 +912,8 @@ void bind_types(py::module_& m)
     .def("__eq__", &State::operator==)
     .def("__ne__", &State::operator!=)
     .def("json", [](const State& self) -> nlohmann::json { return self; })
-    .def_static("from_json", [](const nlohmann::json& j) -> State { return j; });
-
+    .def_static(
+      "from_json", [](const nlohmann::json& j) -> State { return j; });
 }
 
 }  // namespace vda5050_core_py

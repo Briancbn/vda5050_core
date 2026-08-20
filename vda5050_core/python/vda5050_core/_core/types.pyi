@@ -3,7 +3,7 @@
 # Automatically generated files do not have a copyright
 
 """
-Native VDA5050 client API
+VDA5050 types
 """
 from __future__ import annotations
 import collections.abc

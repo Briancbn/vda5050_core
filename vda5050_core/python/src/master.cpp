@@ -45,8 +45,7 @@ using vda5050_core::master::VDA5050Master;
 
 void bind_master(py::module_& m)
 {
-  auto m_master =
-    m.def_submodule("master", "VDA5050 master fleet control API");
+  auto m_master = m.def_submodule("master", "VDA5050 master fleet control API");
 
   // --- Enums ---
 
@@ -75,11 +74,9 @@ void bind_master(py::module_& m)
     .value("ASSIGNED", InstantActionDecision::ASSIGNED)
     .value("AGV_NOT_ONBOARDED", InstantActionDecision::AGV_NOT_ONBOARDED)
     .value("AGV_OFFLINE", InstantActionDecision::AGV_OFFLINE)
-    .value(
-      "DUPLICATE_ACTION_ID", InstantActionDecision::DUPLICATE_ACTION_ID)
+    .value("DUPLICATE_ACTION_ID", InstantActionDecision::DUPLICATE_ACTION_ID)
     .value("AGV_QUEUE_FULL", InstantActionDecision::AGV_QUEUE_FULL)
-    .value(
-      "HARD_ACTION_BLOCKED", InstantActionDecision::HARD_ACTION_BLOCKED)
+    .value("HARD_ACTION_BLOCKED", InstantActionDecision::HARD_ACTION_BLOCKED)
     .value(
       "ACTION_BLOCKED_BY_DRIVING",
       InstantActionDecision::ACTION_BLOCKED_BY_DRIVING)
@@ -115,40 +112,36 @@ void bind_master(py::module_& m)
   // std::optional<system_clock::time_point> → datetime.datetime | None.
   py::class_<VDA5050Master::BrokerStatusSnapshot>(
     m_master, "BrokerStatusSnapshot")
-    .def_readonly(
-      "connected", &VDA5050Master::BrokerStatusSnapshot::connected)
+    .def_readonly("connected", &VDA5050Master::BrokerStatusSnapshot::connected)
     .def_readonly(
       "last_disconnect_at",
       &VDA5050Master::BrokerStatusSnapshot::last_disconnect_at)
     .def_readonly(
-      "reconnect_count",
-      &VDA5050Master::BrokerStatusSnapshot::reconnect_count);
+      "reconnect_count", &VDA5050Master::BrokerStatusSnapshot::reconnect_count);
 
   py::class_<VDA5050Master::OnboardSpec>(m_master, "OnboardSpec")
     .def(py::init<>())
     .def(
-      py::init(
-        [](const std::string& mfg, const std::string& serial,
-           std::size_t max_queue, bool drop_oldest) {
-          VDA5050Master::OnboardSpec s;
-          s.manufacturer = mfg;
-          s.serial_number = serial;
-          s.max_queue_size = max_queue;
-          s.drop_oldest = drop_oldest;
-          return s;
-        }),
+      py::init([](
+                 const std::string& mfg, const std::string& serial,
+                 std::size_t max_queue, bool drop_oldest) {
+        VDA5050Master::OnboardSpec s;
+        s.manufacturer = mfg;
+        s.serial_number = serial;
+        s.max_queue_size = max_queue;
+        s.drop_oldest = drop_oldest;
+        return s;
+      }),
       py::arg("manufacturer"), py::arg("serial_number"),
       py::arg("max_queue_size") = 10, py::arg("drop_oldest") = true)
     .def_readwrite("manufacturer", &VDA5050Master::OnboardSpec::manufacturer)
-    .def_readwrite(
-      "serial_number", &VDA5050Master::OnboardSpec::serial_number)
+    .def_readwrite("serial_number", &VDA5050Master::OnboardSpec::serial_number)
     .def_readwrite(
       "max_queue_size", &VDA5050Master::OnboardSpec::max_queue_size)
     .def_readwrite("drop_oldest", &VDA5050Master::OnboardSpec::drop_oldest);
 
   py::class_<VDA5050Master::BatchOnboardResult>(m_master, "BatchOnboardResult")
-    .def_readonly(
-      "onboarded", &VDA5050Master::BatchOnboardResult::onboarded)
+    .def_readonly("onboarded", &VDA5050Master::BatchOnboardResult::onboarded)
     .def_readonly(
       "skipped_already_onboarded",
       &VDA5050Master::BatchOnboardResult::skipped_already_onboarded)
@@ -218,8 +211,12 @@ void bind_master(py::module_& m)
     .def_static("make", &VDA5050Master::make, py::arg("mqtt_client"))
 
     // Connection management
-    .def("connect", &VDA5050Master::connect, py::call_guard<py::gil_scoped_release>())
-    .def("disconnect", &VDA5050Master::disconnect, py::call_guard<py::gil_scoped_release>())
+    .def(
+      "connect", &VDA5050Master::connect,
+      py::call_guard<py::gil_scoped_release>())
+    .def(
+      "disconnect", &VDA5050Master::disconnect,
+      py::call_guard<py::gil_scoped_release>())
     .def("is_connected", &VDA5050Master::is_connected)
     .def(
       "get_broker_status", &VDA5050Master::get_broker_status,
@@ -237,16 +234,14 @@ void bind_master(py::module_& m)
     .def(
       "onboard_agv_with_interface",
       py::overload_cast<
-        const std::string&, const std::string&, const std::string&,
-        std::size_t, bool>(&VDA5050Master::onboard_agv),
+        const std::string&, const std::string&, const std::string&, std::size_t,
+        bool>(&VDA5050Master::onboard_agv),
       py::arg("interface_name"), py::arg("manufacturer"),
       py::arg("serial_number"), py::arg("max_queue_size") = 10,
-      py::arg("drop_oldest") = true,
-      py::call_guard<py::gil_scoped_release>())
+      py::arg("drop_oldest") = true, py::call_guard<py::gil_scoped_release>())
     .def(
-      "offboard_agv", &VDA5050Master::offboard_agv,
-      py::arg("manufacturer"), py::arg("serial_number"),
-      py::call_guard<py::gil_scoped_release>())
+      "offboard_agv", &VDA5050Master::offboard_agv, py::arg("manufacturer"),
+      py::arg("serial_number"), py::call_guard<py::gil_scoped_release>())
     .def(
       "is_agv_onboarded", &VDA5050Master::is_agv_onboarded,
       py::arg("manufacturer"), py::arg("serial_number"))
@@ -263,20 +258,16 @@ void bind_master(py::module_& m)
     .def(
       "resume_mode_cancelled_queue",
       &VDA5050Master::resume_mode_cancelled_queue, py::arg("manufacturer"),
-      py::arg("serial_number"),
-      py::call_guard<py::gil_scoped_release>())
+      py::arg("serial_number"), py::call_guard<py::gil_scoped_release>())
     .def(
       "discard_mode_cancelled_queue",
       &VDA5050Master::discard_mode_cancelled_queue, py::arg("manufacturer"),
-      py::arg("serial_number"),
+      py::arg("serial_number"), py::call_guard<py::gil_scoped_release>())
+    .def(
+      "onboard_agv_batch", &VDA5050Master::onboard_agv_batch, py::arg("specs"),
       py::call_guard<py::gil_scoped_release>())
     .def(
-      "onboard_agv_batch", &VDA5050Master::onboard_agv_batch,
-      py::arg("specs"),
-      py::call_guard<py::gil_scoped_release>())
-    .def(
-      "offboard_agv_batch", &VDA5050Master::offboard_agv_batch,
-      py::arg("keys"),
+      "offboard_agv_batch", &VDA5050Master::offboard_agv_batch, py::arg("keys"),
       py::call_guard<py::gil_scoped_release>())
 
     // Outgoing messages: accept Python dicts, deserialize via JSON.
@@ -284,8 +275,9 @@ void bind_master(py::module_& m)
     // dict → nlohmann::json happens before call_guard takes effect).
     .def(
       "publish_order",
-      [](VDA5050Master& self, const std::string& mfg,
-         const std::string& serial, const nlohmann::json& order_json) {
+      [](
+        VDA5050Master& self, const std::string& mfg, const std::string& serial,
+        const nlohmann::json& order_json) {
         return self.publish_order(
           mfg, serial, order_json.get<vda5050_core::types::Order>());
       },
@@ -293,8 +285,9 @@ void bind_master(py::module_& m)
       py::call_guard<py::gil_scoped_release>())
     .def(
       "assign_order",
-      [](VDA5050Master& self, const std::string& mfg,
-         const std::string& serial, const nlohmann::json& order_json) {
+      [](
+        VDA5050Master& self, const std::string& mfg, const std::string& serial,
+        const nlohmann::json& order_json) {
         return self.assign_order(
           mfg, serial, order_json.get<vda5050_core::types::Order>());
       },
@@ -302,21 +295,21 @@ void bind_master(py::module_& m)
       py::call_guard<py::gil_scoped_release>())
     .def(
       "publish_instant_actions",
-      [](VDA5050Master& self, const std::string& mfg,
-         const std::string& serial, const nlohmann::json& ia_json) {
+      [](
+        VDA5050Master& self, const std::string& mfg, const std::string& serial,
+        const nlohmann::json& ia_json) {
         return self.publish_instant_actions(
-          mfg, serial,
-          ia_json.get<vda5050_core::types::InstantActions>());
+          mfg, serial, ia_json.get<vda5050_core::types::InstantActions>());
       },
       py::arg("manufacturer"), py::arg("serial_number"), py::arg("actions"),
       py::call_guard<py::gil_scoped_release>())
     .def(
       "assign_instant_actions",
-      [](VDA5050Master& self, const std::string& mfg,
-         const std::string& serial, const nlohmann::json& ia_json) {
+      [](
+        VDA5050Master& self, const std::string& mfg, const std::string& serial,
+        const nlohmann::json& ia_json) {
         return self.assign_instant_actions(
-          mfg, serial,
-          ia_json.get<vda5050_core::types::InstantActions>());
+          mfg, serial, ia_json.get<vda5050_core::types::InstantActions>());
       },
       py::arg("manufacturer"), py::arg("serial_number"), py::arg("actions"),
       py::call_guard<py::gil_scoped_release>())
@@ -331,7 +324,8 @@ void bind_master(py::module_& m)
           result = self.load_layout_from_config(path);
         }
         py::list errors;
-        for (const auto& e : result.errors) {
+        for (const auto& e : result.errors)
+        {
           errors.append(e.description);
         }
         py::dict d;

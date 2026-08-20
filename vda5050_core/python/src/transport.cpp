@@ -25,8 +25,8 @@
 
 namespace vda5050_core_py {
 
-using vda5050_core::transport::MqttClientInterface;
 using vda5050_core::transport::create_default_client_shared;
+using vda5050_core::transport::MqttClientInterface;
 
 namespace {
 
