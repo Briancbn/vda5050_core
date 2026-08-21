@@ -284,40 +284,22 @@ void bind_master(py::module_& m)
     // dict → nlohmann::json happens before call_guard takes effect).
     .def(
       "publish_order",
-      [](VDA5050Master& self, const std::string& mfg,
-         const std::string& serial, const nlohmann::json& order_json) {
-        return self.publish_order(
-          mfg, serial, order_json.get<vda5050_core::types::Order>());
-      },
+      &VDA5050Master::publish_order,
       py::arg("manufacturer"), py::arg("serial_number"), py::arg("order"),
       py::call_guard<py::gil_scoped_release>())
     .def(
       "assign_order",
-      [](VDA5050Master& self, const std::string& mfg,
-         const std::string& serial, const nlohmann::json& order_json) {
-        return self.assign_order(
-          mfg, serial, order_json.get<vda5050_core::types::Order>());
-      },
+      &VDA5050Master::assign_order,
       py::arg("manufacturer"), py::arg("serial_number"), py::arg("order"),
       py::call_guard<py::gil_scoped_release>())
     .def(
       "publish_instant_actions",
-      [](VDA5050Master& self, const std::string& mfg,
-         const std::string& serial, const nlohmann::json& ia_json) {
-        return self.publish_instant_actions(
-          mfg, serial,
-          ia_json.get<vda5050_core::types::InstantActions>());
-      },
+      &VDA5050Master::publish_instant_actions,
       py::arg("manufacturer"), py::arg("serial_number"), py::arg("actions"),
       py::call_guard<py::gil_scoped_release>())
     .def(
       "assign_instant_actions",
-      [](VDA5050Master& self, const std::string& mfg,
-         const std::string& serial, const nlohmann::json& ia_json) {
-        return self.assign_instant_actions(
-          mfg, serial,
-          ia_json.get<vda5050_core::types::InstantActions>());
-      },
+      &VDA5050Master::assign_instant_actions,
       py::arg("manufacturer"), py::arg("serial_number"), py::arg("actions"),
       py::call_guard<py::gil_scoped_release>())
 
