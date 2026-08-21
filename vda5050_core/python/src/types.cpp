@@ -272,8 +272,6 @@ void bind_types_wheel_definition_type(py::module_& m)
     .value("MECANUM", WheelDefinitionType::MECANUM);
 }
 
-// ── Structs ───────────────────────────────────────────────────────────────────
-
 void bind_types_action_state(py::module_& m)
 {
   py::class_<ActionState>(m, "ActionState")

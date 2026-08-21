@@ -148,11 +148,6 @@ void bind_master(py::module_& m)
     .def_readonly("failed", &VDA5050Master::BatchOnboardResult::failed);
 
   // --- AGV (read-only fleet view) ---
-  //
-  // Cached message accessors return the VDA5050 message as a Python dict (via
-  // nlohmann::json) or None. Returning std::optional<nlohmann::json> lets
-  // pybind11/stl.h + pybind11_json handle the dict | None conversion.
-
   py::class_<AGV, std::shared_ptr<AGV>>(m_master, "AGV")
     .def("get_interface_name", &AGV::get_interface_name)
     .def("get_manufacturer", &AGV::get_manufacturer)
@@ -161,34 +156,10 @@ void bind_master(py::module_& m)
     .def("is_connected", &AGV::is_connected)
     .def("get_connection_status", &AGV::get_connection_status)
     .def("get_operational_state", &AGV::get_operational_state)
-    .def(
-      "get_last_state",
-      [](const AGV& self) -> std::optional<nlohmann::json> {
-        auto opt = self.get_last_state();
-        if (!opt) return std::nullopt;
-        return nlohmann::json(*opt);
-      })
-    .def(
-      "get_last_connection",
-      [](const AGV& self) -> std::optional<nlohmann::json> {
-        auto opt = self.get_last_connection();
-        if (!opt) return std::nullopt;
-        return nlohmann::json(*opt);
-      })
-    .def(
-      "get_last_factsheet",
-      [](const AGV& self) -> std::optional<nlohmann::json> {
-        auto opt = self.get_last_factsheet();
-        if (!opt) return std::nullopt;
-        return nlohmann::json(*opt);
-      })
-    .def(
-      "get_last_visualization",
-      [](const AGV& self) -> std::optional<nlohmann::json> {
-        auto opt = self.get_last_visualization();
-        if (!opt) return std::nullopt;
-        return nlohmann::json(*opt);
-      })
+    .def("get_last_state", &AGV::get_last_state)
+    .def("get_last_connection", &AGV::get_last_connection)
+    .def("get_last_factsheet", &AGV::get_last_factsheet)
+    .def("get_last_visualization", &AGV::get_last_visualization)
     .def("has_active_order", &AGV::has_active_order)
     // std::optional<std::string> / std::optional<uint32_t> → str | None, int | None
     .def("active_order_id", &AGV::active_order_id)
@@ -200,12 +171,6 @@ void bind_master(py::module_& m)
       &AGV::get_pending_instant_actions_count);
 
   // --- VDA5050Master ---
-  //
-  // Complex VDA5050 message types (Order, State, Connection, etc.) are passed
-  // as Python dicts and converted via nlohmann::json + pybind11_json.
-  // Callbacks fire from the MQTT I/O thread; each acquires the GIL before
-  // invoking the Python callable.
-
   py::class_<VDA5050Master, std::shared_ptr<VDA5050Master>>(
     m_master, "VDA5050Master")
     .def_static("make", &VDA5050Master::make, py::arg("mqtt_client"))
@@ -270,31 +235,23 @@ void bind_master(py::module_& m)
       "offboard_agv_batch", &VDA5050Master::offboard_agv_batch, py::arg("keys"),
       py::call_guard<py::gil_scoped_release>())
 
-    // Outgoing messages: accept Python dicts, deserialize via JSON.
-    // GIL is released before calling into C++ (argument conversion from Python
-    // dict → nlohmann::json happens before call_guard takes effect).
     .def(
-      "publish_order",
-      &VDA5050Master::publish_order,
-      py::arg("manufacturer"), py::arg("serial_number"), py::arg("order"),
+      "publish_order", &VDA5050Master::publish_order, py::arg("manufacturer"),
+      py::arg("serial_number"), py::arg("order"),
       py::call_guard<py::gil_scoped_release>())
     .def(
-      "assign_order",
-      &VDA5050Master::assign_order,
-      py::arg("manufacturer"), py::arg("serial_number"), py::arg("order"),
+      "assign_order", &VDA5050Master::assign_order, py::arg("manufacturer"),
+      py::arg("serial_number"), py::arg("order"),
       py::call_guard<py::gil_scoped_release>())
     .def(
-      "publish_instant_actions",
-      &VDA5050Master::publish_instant_actions,
+      "publish_instant_actions", &VDA5050Master::publish_instant_actions,
       py::arg("manufacturer"), py::arg("serial_number"), py::arg("actions"),
       py::call_guard<py::gil_scoped_release>())
     .def(
-      "assign_instant_actions",
-      &VDA5050Master::assign_instant_actions,
+      "assign_instant_actions", &VDA5050Master::assign_instant_actions,
       py::arg("manufacturer"), py::arg("serial_number"), py::arg("actions"),
       py::call_guard<py::gil_scoped_release>())
 
-    // Topology
     .def(
       "load_layout_from_config",
       [](VDA5050Master& self, const std::string& path) {
@@ -315,15 +272,12 @@ void bind_master(py::module_& m)
       },
       py::arg("path"))
 
-    // Raw message callbacks — callbacks fire on the MQTT I/O thread; pybind11
-    // functional.h wraps the Python callable in a std::function that reacquires
-    // the GIL before invoking it.
+    // Callbacks
     .def("on_state", &VDA5050Master::on_state)
     .def("on_connection", &VDA5050Master::on_connection)
     .def("on_factsheet", &VDA5050Master::on_factsheet)
     .def("on_visualization", &VDA5050Master::on_visualization)
 
-    // Event callbacks
     .def("on_node_reached", &VDA5050Master::on_node_reached)
     .def("on_order_complete", &VDA5050Master::on_order_complete)
     .def("on_order_rejected", &VDA5050Master::on_order_rejected)
@@ -335,7 +289,6 @@ void bind_master(py::module_& m)
     .def("on_driving", &VDA5050Master::on_driving)
     .def("on_loads_changed", &VDA5050Master::on_loads_changed)
 
-    // Connection event callbacks
     .def("on_connect", &VDA5050Master::on_connect)
     .def("on_offline", &VDA5050Master::on_offline)
     .def("on_connection_broken", &VDA5050Master::on_connection_broken)
