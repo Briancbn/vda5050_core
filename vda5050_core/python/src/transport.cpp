@@ -115,7 +115,7 @@ void bind_transport(py::module_& m)
       py::arg("message"), py::arg("qos"), py::arg("retain") = true);
 
   m_transport.def(
-    "create_mqtt_client", &create_default_client_shared,
+    "create_default_client_shared", &create_default_client_shared,
     py::arg("broker_address"), py::arg("client_id"),
     "Create a Paho-backed MQTT client shared_ptr.");
 }

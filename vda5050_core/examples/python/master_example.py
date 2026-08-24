@@ -21,7 +21,7 @@ import os
 import time
 
 from vda5050_core.master import VDA5050Master
-from vda5050_core.transport import create_mqtt_client
+from vda5050_core.transport import create_default_client_shared
 
 BROKER_URI = os.environ.get("MQTT_BROKER", "tcp://localhost:1883")
 MQTT_CLIENT_ID = os.environ.get("MASTER_MQTT_CLIENT_ID", "example-master")
@@ -55,7 +55,7 @@ def main() -> None:
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
     )
-    mqtt_client = create_mqtt_client(BROKER_URI, MQTT_CLIENT_ID)
+    mqtt_client = create_default_client_shared(BROKER_URI, MQTT_CLIENT_ID)
     master = VDA5050Master.make(mqtt_client)
     master_observer = MasterObserver()
 

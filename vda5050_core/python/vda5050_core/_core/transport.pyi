@@ -8,7 +8,7 @@ VDA5050 MQTT transport layer
 from __future__ import annotations
 import collections.abc
 import typing
-__all__: list[str] = ['MqttClientInterface', 'create_mqtt_client']
+__all__: list[str] = ['MqttClientInterface', 'create_default_client_shared']
 class MqttClientInterface:
     def __init__(self) -> None:
         ...
@@ -26,7 +26,7 @@ class MqttClientInterface:
         ...
     def unsubscribe(self, topic: str) -> None:
         ...
-def create_mqtt_client(broker_address: str, client_id: str) -> MqttClientInterface:
+def create_default_client_shared(broker_address: str, client_id: str) -> MqttClientInterface:
     """
     Create a Paho-backed MQTT client shared_ptr.
     """
