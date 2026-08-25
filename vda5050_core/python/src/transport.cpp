@@ -30,9 +30,11 @@ using vda5050_core::transport::MqttClientInterface;
 
 namespace {
 
-class PyMqttClientInterface : public MqttClientInterface
+class PyMqttClientInterface : public MqttClientInterface,
+                              public py::trampoline_self_life_support
 {
 public:
+  using MqttClientInterface::MqttClientInterface;
   void connect() override
   {
     PYBIND11_OVERRIDE_PURE(void, MqttClientInterface, connect);
@@ -98,7 +100,7 @@ void bind_transport(py::module_& m)
 
   py::class_<
     MqttClientInterface, PyMqttClientInterface,
-    std::shared_ptr<MqttClientInterface>>(m_transport, "MqttClientInterface")
+    py::smart_holder>(m_transport, "MqttClientInterface")
     .def(py::init<>())
     .def("connect", &MqttClientInterface::connect)
     .def("disconnect", &MqttClientInterface::disconnect)
@@ -112,7 +114,13 @@ void bind_transport(py::module_& m)
     .def("unsubscribe", &MqttClientInterface::unsubscribe, py::arg("topic"))
     .def(
       "set_will", &MqttClientInterface::set_will, py::arg("topic"),
-      py::arg("message"), py::arg("qos"), py::arg("retain") = true);
+      py::arg("message"), py::arg("qos"), py::arg("retain") = true)
+    .def(
+      "set_connection_lost_callback",
+      &MqttClientInterface::set_connection_lost_callback, py::arg("handler"))
+    .def(
+      "set_connected_callback", &MqttClientInterface::set_connected_callback,
+      py::arg("handler"));
 
   m_transport.def(
     "create_default_client_shared", &create_default_client_shared,

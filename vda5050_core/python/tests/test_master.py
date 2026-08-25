@@ -14,9 +14,43 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
 from vda5050_core.master import AGV, VDA5050Master
 
 
 def test_master_imports():
     assert AGV is not None
     assert VDA5050Master is not None
+
+
+@pytest.fixture
+def mock_mqtt_client(mock_mqtt_client):
+    connected = False
+
+    def connect():
+        nonlocal connected
+        connected = True
+
+    def disconnect():
+        nonlocal connected
+        connected = False
+
+    mock_mqtt_client.connected.side_effect = lambda: connected
+    mock_mqtt_client.connect.side_effect = connect
+    mock_mqtt_client.disconnect.side_effect = disconnect
+
+    return mock_mqtt_client
+
+
+def test_master_mock_transport_connect(mock_mqtt_client):
+    master = VDA5050Master.make(mock_mqtt_client)
+    assert master.is_connected() is False
+    assert mock_mqtt_client.connected.call_count == 1
+
+    master.connect()
+    assert mock_mqtt_client.connect.call_count == 1
+    assert master.is_connected() is True
+
+    master.disconnect()
+    assert mock_mqtt_client.disconnect.call_count == 1
+    assert master.is_connected() is False
