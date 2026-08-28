@@ -91,7 +91,7 @@ install_json_from_source() {
 
 # Header-only pybind11 CMake package for hosts without a distro package
 # (manylinux). PYBIND11_NOPYTHON avoids baking the container interpreter;
-# the wheel build still gets pybind11 from the build-system requires.
+# the wheel build still gets pybind11 from the build-system requires (v3 instead).
 install_pybind11_from_source() {
   local work
   work="$(mktemp -d)"
@@ -110,9 +110,6 @@ install_pybind11_from_source() {
 }
 
 # pybind11_json: header-only bridge between nlohmann::json and pybind11.
-# Not on PyPI/Homebrew; install from source so the SKBUILD wheel build
-# can find_package(pybind11_json). Requires pybind11's CMake config
-# discoverable via CMAKE_PREFIX_PATH or system paths.
 install_pybind11_json_from_source() {
   local work
   work="$(mktemp -d)"
@@ -211,4 +208,4 @@ case "$(uname -s)" in
     ;;
 esac
 
-echo "Native dependencies installed (Paho MQTT C++ $PAHO_CPP_TAG)."
+echo "All Native dependencies installed!"
