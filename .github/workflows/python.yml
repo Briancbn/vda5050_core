@@ -8,13 +8,14 @@ on:
       - main
       - develop
 
+defaults:
+  run:
+    working-directory: vda5050_core
+
 jobs:
   lint:
     name: Ruff Lint
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: vda5050_core
     steps:
       - uses: actions/checkout@v6
 
@@ -30,13 +31,10 @@ jobs:
   test:
     name: UV Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: vda5050_core
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.12"]
     steps:
       - uses: actions/checkout@v6
 
@@ -66,9 +64,6 @@ jobs:
   stub-test:
     name: Check Stale Stubs
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: vda5050_core
     strategy:
       fail-fast: false
       matrix:
@@ -105,3 +100,41 @@ jobs:
           fi
           echo "Stubs are stale!!"
           exit 1
+
+  wheels:
+    name: Build wheels ${{ matrix.python }}-${{ matrix.buildplat[1] }}
+    needs: [lint, test, stub-test]
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["cp310", "cp312"]
+        buildplat:
+          - [ubuntu-latest, manylinux_x86_64]
+          - [ubuntu-24.04-arm, manylinux_aarch64]
+          - [macos-15-intel, macosx_x86_64]
+          - [macos-15, macosx_arm64]
+    runs-on: ${{ matrix.buildplat[0] }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: "Install UV"
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+
+      - name: Setup macOS
+        if: startsWith(matrix.buildplat[1], 'macosx_')
+        run: |
+          CIBW="MACOSX_DEPLOYMENT_TARGET=15.0"
+          echo "CIBW_ENVIRONMENT_MACOS=$CIBW" >> "$GITHUB_ENV"
+
+      - name: Build wheels
+        run: >
+          uvx cibuildwheel
+          --only "${{ matrix.python }}-${{ matrix.buildplat[1] }}"
+          --output-dir ../wheelhouse
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wheels-${{ matrix.python }}-${{ matrix.buildplat[1] }}
+          path: wheelhouse/*.whl
