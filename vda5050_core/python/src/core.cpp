@@ -17,6 +17,9 @@
  */
 
 #include <pybind11/pybind11.h>
+#ifdef PYBIND11_HAS_INTERNALS_WITH_SMART_HOLDER_SUPPORT
+#error "pybind11 >= 3.0 is not supported. Please use pybind11 < 3.0."
+#endif
 
 #include "vda5050_core_py/client.hpp"
 #include "vda5050_core_py/master.hpp"

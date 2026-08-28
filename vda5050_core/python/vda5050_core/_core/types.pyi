@@ -6,13 +6,15 @@
 VDA5050 types
 """
 from __future__ import annotations
-import collections.abc
 import typing
 __all__: list[str] = ['AGVAction', 'AGVClass', 'AGVGeometry', 'AGVKinematic', 'AGVPosition', 'Action', 'ActionParameter', 'ActionParameterFactsheet', 'ActionScope', 'ActionState', 'ActionStatus', 'BatteryState', 'BlockingType', 'BoundingBoxReference', 'Connection', 'ConnectionState', 'ControlPoint', 'EStop', 'Edge', 'EdgeState', 'Envelope2d', 'Envelope3d', 'Error', 'ErrorLevel', 'ErrorReference', 'Factsheet', 'Header', 'Info', 'InfoLevel', 'InfoReference', 'InstantActions', 'Load', 'LoadDimensions', 'LoadSet', 'LoadSpecification', 'MaxArrayLens', 'MaxStringLens', 'Node', 'NodePosition', 'NodeState', 'OperatingMode', 'OptionalParameter', 'Order', 'OrientationType', 'PhysicalParameters', 'PolygonPoint', 'Position', 'ProtocolFeatures', 'ProtocolLimits', 'SafetyState', 'State', 'Support', 'Timing', 'Trajectory', 'TypeSpecification', 'ValueDataType', 'Velocity', 'Visualization', 'WheelDefinition', 'WheelDefinitionType']
 class AGVAction:
     __hash__: typing.ClassVar[None] = None
     action_description: str | None
+    action_parameters: list[ActionParameterFactsheet] | None
+    action_scopes: list[ActionScope]
     action_type: str
+    blocking_types: list[BlockingType] | None
     result_description: str | None
     @staticmethod
     def from_json(arg0: json) -> AGVAction:
@@ -24,24 +26,6 @@ class AGVAction:
     def __ne__(self, arg0: AGVAction) -> bool:
         ...
     def json(self) -> json:
-        ...
-    @property
-    def action_parameters(self) -> list[ActionParameterFactsheet] | None:
-        ...
-    @action_parameters.setter
-    def action_parameters(self, arg0: collections.abc.Sequence[ActionParameterFactsheet] | None) -> None:
-        ...
-    @property
-    def action_scopes(self) -> list[ActionScope]:
-        ...
-    @action_scopes.setter
-    def action_scopes(self, arg0: collections.abc.Sequence[ActionScope]) -> None:
-        ...
-    @property
-    def blocking_types(self) -> list[BlockingType] | None:
-        ...
-    @blocking_types.setter
-    def blocking_types(self, arg0: collections.abc.Sequence[BlockingType] | None) -> None:
         ...
 class AGVClass:
     """
@@ -60,10 +44,6 @@ class AGVClass:
     FORKLIFT: typing.ClassVar[AGVClass]  # value = <AGVClass.FORKLIFT: 0>
     TUGGER: typing.ClassVar[AGVClass]  # value = <AGVClass.TUGGER: 2>
     __members__: typing.ClassVar[dict[str, AGVClass]]  # value = {'FORKLIFT': <AGVClass.FORKLIFT: 0>, 'CONVEYOR': <AGVClass.CONVEYOR: 1>, 'TUGGER': <AGVClass.TUGGER: 2>, 'CARRIER': <AGVClass.CARRIER: 3>}
-    @typing.overload
-    def __eq__(self, other: AGVClass) -> bool:
-        ...
-    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -72,19 +52,15 @@ class AGVClass:
         ...
     def __index__(self) -> int:
         ...
-    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __init__(self, value: int) -> None:
         ...
     def __int__(self) -> int:
         ...
-    @typing.overload
-    def __ne__(self, other: AGVClass) -> bool:
-        ...
-    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
         ...
-    def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __setstate__(self, state: int) -> None:
         ...
     def __str__(self) -> str:
         ...
@@ -96,6 +72,9 @@ class AGVClass:
         ...
 class AGVGeometry:
     __hash__: typing.ClassVar[None] = None
+    envelopes2d: list[Envelope2d] | None
+    envelopes3d: list[Envelope3d] | None
+    wheel_definitions: list[WheelDefinition] | None
     @staticmethod
     def from_json(arg0: json) -> AGVGeometry:
         ...
@@ -106,24 +85,6 @@ class AGVGeometry:
     def __ne__(self, arg0: AGVGeometry) -> bool:
         ...
     def json(self) -> json:
-        ...
-    @property
-    def envelopes2d(self) -> list[Envelope2d] | None:
-        ...
-    @envelopes2d.setter
-    def envelopes2d(self, arg0: collections.abc.Sequence[Envelope2d] | None) -> None:
-        ...
-    @property
-    def envelopes3d(self) -> list[Envelope3d] | None:
-        ...
-    @envelopes3d.setter
-    def envelopes3d(self, arg0: collections.abc.Sequence[Envelope3d] | None) -> None:
-        ...
-    @property
-    def wheel_definitions(self) -> list[WheelDefinition] | None:
-        ...
-    @wheel_definitions.setter
-    def wheel_definitions(self, arg0: collections.abc.Sequence[WheelDefinition] | None) -> None:
         ...
 class AGVKinematic:
     """
@@ -139,10 +100,6 @@ class AGVKinematic:
     OMNI: typing.ClassVar[AGVKinematic]  # value = <AGVKinematic.OMNI: 1>
     THREEWHEEL: typing.ClassVar[AGVKinematic]  # value = <AGVKinematic.THREEWHEEL: 2>
     __members__: typing.ClassVar[dict[str, AGVKinematic]]  # value = {'DIFF': <AGVKinematic.DIFF: 0>, 'OMNI': <AGVKinematic.OMNI: 1>, 'THREEWHEEL': <AGVKinematic.THREEWHEEL: 2>}
-    @typing.overload
-    def __eq__(self, other: AGVKinematic) -> bool:
-        ...
-    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -151,19 +108,15 @@ class AGVKinematic:
         ...
     def __index__(self) -> int:
         ...
-    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __init__(self, value: int) -> None:
         ...
     def __int__(self) -> int:
         ...
-    @typing.overload
-    def __ne__(self, other: AGVKinematic) -> bool:
-        ...
-    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
         ...
-    def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __setstate__(self, state: int) -> None:
         ...
     def __str__(self) -> str:
         ...
@@ -175,9 +128,14 @@ class AGVKinematic:
         ...
 class AGVPosition:
     __hash__: typing.ClassVar[None] = None
+    deviation_range: float | None
+    localization_score: float | None
     map_description: str | None
     map_id: str
     position_initialized: bool
+    theta: float
+    x: float
+    y: float
     @staticmethod
     def from_json(arg0: json) -> AGVPosition:
         ...
@@ -189,40 +147,11 @@ class AGVPosition:
         ...
     def json(self) -> json:
         ...
-    @property
-    def deviation_range(self) -> float | None:
-        ...
-    @deviation_range.setter
-    def deviation_range(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def localization_score(self) -> float | None:
-        ...
-    @localization_score.setter
-    def localization_score(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def theta(self) -> float:
-        ...
-    @theta.setter
-    def theta(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def x(self) -> float:
-        ...
-    @x.setter
-    def x(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def y(self) -> float:
-        ...
-    @y.setter
-    def y(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
 class Action:
     __hash__: typing.ClassVar[None] = None
     action_description: str | None
     action_id: str
+    action_parameters: list[ActionParameter] | None
     action_type: str
     blocking_type: BlockingType
     @staticmethod
@@ -235,12 +164,6 @@ class Action:
     def __ne__(self, arg0: Action) -> bool:
         ...
     def json(self) -> json:
-        ...
-    @property
-    def action_parameters(self) -> list[ActionParameter] | None:
-        ...
-    @action_parameters.setter
-    def action_parameters(self, arg0: collections.abc.Sequence[ActionParameter] | None) -> None:
         ...
 class ActionParameter:
     __hash__: typing.ClassVar[None] = None
@@ -288,10 +211,6 @@ class ActionScope:
     INSTANT: typing.ClassVar[ActionScope]  # value = <ActionScope.INSTANT: 0>
     NODE: typing.ClassVar[ActionScope]  # value = <ActionScope.NODE: 1>
     __members__: typing.ClassVar[dict[str, ActionScope]]  # value = {'INSTANT': <ActionScope.INSTANT: 0>, 'NODE': <ActionScope.NODE: 1>, 'EDGE': <ActionScope.EDGE: 2>}
-    @typing.overload
-    def __eq__(self, other: ActionScope) -> bool:
-        ...
-    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -300,19 +219,15 @@ class ActionScope:
         ...
     def __index__(self) -> int:
         ...
-    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __init__(self, value: int) -> None:
         ...
     def __int__(self) -> int:
         ...
-    @typing.overload
-    def __ne__(self, other: ActionScope) -> bool:
-        ...
-    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
         ...
-    def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __setstate__(self, state: int) -> None:
         ...
     def __str__(self) -> str:
         ...
@@ -363,10 +278,6 @@ class ActionStatus:
     RUNNING: typing.ClassVar[ActionStatus]  # value = <ActionStatus.RUNNING: 2>
     WAITING: typing.ClassVar[ActionStatus]  # value = <ActionStatus.WAITING: 0>
     __members__: typing.ClassVar[dict[str, ActionStatus]]  # value = {'WAITING': <ActionStatus.WAITING: 0>, 'INITIALIZING': <ActionStatus.INITIALIZING: 1>, 'RUNNING': <ActionStatus.RUNNING: 2>, 'PAUSED': <ActionStatus.PAUSED: 3>, 'FINISHED': <ActionStatus.FINISHED: 4>, 'FAILED': <ActionStatus.FAILED: 5>}
-    @typing.overload
-    def __eq__(self, other: ActionStatus) -> bool:
-        ...
-    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -375,19 +286,15 @@ class ActionStatus:
         ...
     def __index__(self) -> int:
         ...
-    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __init__(self, value: int) -> None:
         ...
     def __int__(self) -> int:
         ...
-    @typing.overload
-    def __ne__(self, other: ActionStatus) -> bool:
-        ...
-    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
         ...
-    def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __setstate__(self, state: int) -> None:
         ...
     def __str__(self) -> str:
         ...
@@ -399,7 +306,11 @@ class ActionStatus:
         ...
 class BatteryState:
     __hash__: typing.ClassVar[None] = None
+    battery_charge: float
+    battery_health: int | None
+    battery_voltage: float | None
     charging: bool
+    reach: int | None
     @staticmethod
     def from_json(arg0: json) -> BatteryState:
         ...
@@ -410,30 +321,6 @@ class BatteryState:
     def __ne__(self, arg0: BatteryState) -> bool:
         ...
     def json(self) -> json:
-        ...
-    @property
-    def battery_charge(self) -> float:
-        ...
-    @battery_charge.setter
-    def battery_charge(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def battery_health(self) -> int | None:
-        ...
-    @battery_health.setter
-    def battery_health(self, arg0: typing.SupportsInt | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def battery_voltage(self) -> float | None:
-        ...
-    @battery_voltage.setter
-    def battery_voltage(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def reach(self) -> int | None:
-        ...
-    @reach.setter
-    def reach(self, arg0: typing.SupportsInt | typing.SupportsIndex | None) -> None:
         ...
 class BlockingType:
     """
@@ -449,10 +336,6 @@ class BlockingType:
     NONE: typing.ClassVar[BlockingType]  # value = <BlockingType.NONE: 0>
     SOFT: typing.ClassVar[BlockingType]  # value = <BlockingType.SOFT: 1>
     __members__: typing.ClassVar[dict[str, BlockingType]]  # value = {'NONE': <BlockingType.NONE: 0>, 'SOFT': <BlockingType.SOFT: 1>, 'HARD': <BlockingType.HARD: 2>}
-    @typing.overload
-    def __eq__(self, other: BlockingType) -> bool:
-        ...
-    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -461,19 +344,15 @@ class BlockingType:
         ...
     def __index__(self) -> int:
         ...
-    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __init__(self, value: int) -> None:
         ...
     def __int__(self) -> int:
         ...
-    @typing.overload
-    def __ne__(self, other: BlockingType) -> bool:
-        ...
-    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
         ...
-    def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __setstate__(self, state: int) -> None:
         ...
     def __str__(self) -> str:
         ...
@@ -485,6 +364,10 @@ class BlockingType:
         ...
 class BoundingBoxReference:
     __hash__: typing.ClassVar[None] = None
+    theta: float | None
+    x: float
+    y: float
+    z: float
     @staticmethod
     def from_json(arg0: json) -> BoundingBoxReference:
         ...
@@ -495,30 +378,6 @@ class BoundingBoxReference:
     def __ne__(self, arg0: BoundingBoxReference) -> bool:
         ...
     def json(self) -> json:
-        ...
-    @property
-    def theta(self) -> float | None:
-        ...
-    @theta.setter
-    def theta(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def x(self) -> float:
-        ...
-    @x.setter
-    def x(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def y(self) -> float:
-        ...
-    @y.setter
-    def y(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def z(self) -> float:
-        ...
-    @z.setter
-    def z(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
 class Connection:
     __hash__: typing.ClassVar[None] = None
@@ -549,10 +408,6 @@ class ConnectionState:
     OFFLINE: typing.ClassVar[ConnectionState]  # value = <ConnectionState.OFFLINE: 1>
     ONLINE: typing.ClassVar[ConnectionState]  # value = <ConnectionState.ONLINE: 0>
     __members__: typing.ClassVar[dict[str, ConnectionState]]  # value = {'ONLINE': <ConnectionState.ONLINE: 0>, 'OFFLINE': <ConnectionState.OFFLINE: 1>, 'CONNECTIONBROKEN': <ConnectionState.CONNECTIONBROKEN: 2>}
-    @typing.overload
-    def __eq__(self, other: ConnectionState) -> bool:
-        ...
-    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -561,19 +416,15 @@ class ConnectionState:
         ...
     def __index__(self) -> int:
         ...
-    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __init__(self, value: int) -> None:
         ...
     def __int__(self) -> int:
         ...
-    @typing.overload
-    def __ne__(self, other: ConnectionState) -> bool:
-        ...
-    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
         ...
-    def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __setstate__(self, state: int) -> None:
         ...
     def __str__(self) -> str:
         ...
@@ -585,6 +436,9 @@ class ConnectionState:
         ...
 class ControlPoint:
     __hash__: typing.ClassVar[None] = None
+    weight: float
+    x: float
+    y: float
     @staticmethod
     def from_json(arg0: json) -> ControlPoint:
         ...
@@ -595,24 +449,6 @@ class ControlPoint:
     def __ne__(self, arg0: ControlPoint) -> bool:
         ...
     def json(self) -> json:
-        ...
-    @property
-    def weight(self) -> float:
-        ...
-    @weight.setter
-    def weight(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def x(self) -> float:
-        ...
-    @x.setter
-    def x(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def y(self) -> float:
-        ...
-    @y.setter
-    def y(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
 class EStop:
     """
@@ -631,10 +467,6 @@ class EStop:
     NONE: typing.ClassVar[EStop]  # value = <EStop.NONE: 3>
     REMOTE: typing.ClassVar[EStop]  # value = <EStop.REMOTE: 2>
     __members__: typing.ClassVar[dict[str, EStop]]  # value = {'AUTOACK': <EStop.AUTOACK: 0>, 'MANUAL': <EStop.MANUAL: 1>, 'REMOTE': <EStop.REMOTE: 2>, 'NONE': <EStop.NONE: 3>}
-    @typing.overload
-    def __eq__(self, other: EStop) -> bool:
-        ...
-    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -643,19 +475,15 @@ class EStop:
         ...
     def __index__(self) -> int:
         ...
-    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __init__(self, value: int) -> None:
         ...
     def __int__(self) -> int:
         ...
-    @typing.overload
-    def __ne__(self, other: EStop) -> bool:
-        ...
-    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
         ...
-    def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __setstate__(self, state: int) -> None:
         ...
     def __str__(self) -> str:
         ...
@@ -667,15 +495,23 @@ class EStop:
         ...
 class Edge:
     __hash__: typing.ClassVar[None] = None
+    actions: list[Action]
     direction: str | None
     edge_description: str | None
     edge_id: str
     end_node_id: str
-    orientation_type: vda5050_core._core.types.OrientationType | None
+    length: float | None
+    max_height: float | None
+    max_rotation_speed: float | None
+    max_speed: float | None
+    min_height: float | None
+    orientation: float | None
+    orientation_type: OrientationType | None
     released: bool
     rotation_allowed: bool | None
+    sequence_id: int
     start_node_id: str
-    trajectory: vda5050_core._core.types.Trajectory | None
+    trajectory: Trajectory | None
     @staticmethod
     def from_json(arg0: json) -> Edge:
         ...
@@ -687,60 +523,13 @@ class Edge:
         ...
     def json(self) -> json:
         ...
-    @property
-    def actions(self) -> list[Action]:
-        ...
-    @actions.setter
-    def actions(self, arg0: collections.abc.Sequence[Action]) -> None:
-        ...
-    @property
-    def length(self) -> float | None:
-        ...
-    @length.setter
-    def length(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def max_height(self) -> float | None:
-        ...
-    @max_height.setter
-    def max_height(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def max_rotation_speed(self) -> float | None:
-        ...
-    @max_rotation_speed.setter
-    def max_rotation_speed(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def max_speed(self) -> float | None:
-        ...
-    @max_speed.setter
-    def max_speed(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def min_height(self) -> float | None:
-        ...
-    @min_height.setter
-    def min_height(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def orientation(self) -> float | None:
-        ...
-    @orientation.setter
-    def orientation(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def sequence_id(self) -> int:
-        ...
-    @sequence_id.setter
-    def sequence_id(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
-        ...
 class EdgeState:
     __hash__: typing.ClassVar[None] = None
     edge_description: str | None
     edge_id: str
     released: bool
-    trajectory: vda5050_core._core.types.Trajectory | None
+    sequence_id: int
+    trajectory: Trajectory | None
     @staticmethod
     def from_json(arg0: json) -> EdgeState:
         ...
@@ -752,15 +541,10 @@ class EdgeState:
         ...
     def json(self) -> json:
         ...
-    @property
-    def sequence_id(self) -> int:
-        ...
-    @sequence_id.setter
-    def sequence_id(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
-        ...
 class Envelope2d:
     __hash__: typing.ClassVar[None] = None
     description: str | None
+    polygon_points: list[PolygonPoint]
     set: str
     @staticmethod
     def from_json(arg0: json) -> Envelope2d:
@@ -772,12 +556,6 @@ class Envelope2d:
     def __ne__(self, arg0: Envelope2d) -> bool:
         ...
     def json(self) -> json:
-        ...
-    @property
-    def polygon_points(self) -> list[PolygonPoint]:
-        ...
-    @polygon_points.setter
-    def polygon_points(self, arg0: collections.abc.Sequence[PolygonPoint]) -> None:
         ...
 class Envelope3d:
     __hash__: typing.ClassVar[None] = None
@@ -801,6 +579,7 @@ class Error:
     __hash__: typing.ClassVar[None] = None
     error_description: str | None
     error_level: ErrorLevel
+    error_references: list[ErrorReference] | None
     error_type: str
     @staticmethod
     def from_json(arg0: json) -> Error:
@@ -813,12 +592,6 @@ class Error:
         ...
     def json(self) -> json:
         ...
-    @property
-    def error_references(self) -> list[ErrorReference] | None:
-        ...
-    @error_references.setter
-    def error_references(self, arg0: collections.abc.Sequence[ErrorReference] | None) -> None:
-        ...
 class ErrorLevel:
     """
     Members:
@@ -830,10 +603,6 @@ class ErrorLevel:
     FATAL: typing.ClassVar[ErrorLevel]  # value = <ErrorLevel.FATAL: 1>
     WARNING: typing.ClassVar[ErrorLevel]  # value = <ErrorLevel.WARNING: 0>
     __members__: typing.ClassVar[dict[str, ErrorLevel]]  # value = {'WARNING': <ErrorLevel.WARNING: 0>, 'FATAL': <ErrorLevel.FATAL: 1>}
-    @typing.overload
-    def __eq__(self, other: ErrorLevel) -> bool:
-        ...
-    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -842,19 +611,15 @@ class ErrorLevel:
         ...
     def __index__(self) -> int:
         ...
-    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __init__(self, value: int) -> None:
         ...
     def __int__(self) -> int:
         ...
-    @typing.overload
-    def __ne__(self, other: ErrorLevel) -> bool:
-        ...
-    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
         ...
-    def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __setstate__(self, state: int) -> None:
         ...
     def __str__(self) -> str:
         ...
@@ -902,8 +667,10 @@ class Factsheet:
         ...
 class Header:
     __hash__: typing.ClassVar[None] = None
+    header_id: int
     manufacturer: str
     serial_number: str
+    timestamp: float
     version: str
     @staticmethod
     def from_json(arg0: json) -> Header:
@@ -916,22 +683,11 @@ class Header:
         ...
     def json(self) -> json:
         ...
-    @property
-    def header_id(self) -> int:
-        ...
-    @header_id.setter
-    def header_id(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def timestamp(self) -> float:
-        ...
-    @timestamp.setter
-    def timestamp(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
 class Info:
     __hash__: typing.ClassVar[None] = None
     info_description: str | None
     info_level: InfoLevel
+    info_references: list[InfoReference] | None
     info_type: str
     @staticmethod
     def from_json(arg0: json) -> Info:
@@ -944,12 +700,6 @@ class Info:
         ...
     def json(self) -> json:
         ...
-    @property
-    def info_references(self) -> list[InfoReference] | None:
-        ...
-    @info_references.setter
-    def info_references(self, arg0: collections.abc.Sequence[InfoReference] | None) -> None:
-        ...
 class InfoLevel:
     """
     Members:
@@ -961,10 +711,6 @@ class InfoLevel:
     DEBUG: typing.ClassVar[InfoLevel]  # value = <InfoLevel.DEBUG: 0>
     INFO: typing.ClassVar[InfoLevel]  # value = <InfoLevel.INFO: 1>
     __members__: typing.ClassVar[dict[str, InfoLevel]]  # value = {'DEBUG': <InfoLevel.DEBUG: 0>, 'INFO': <InfoLevel.INFO: 1>}
-    @typing.overload
-    def __eq__(self, other: InfoLevel) -> bool:
-        ...
-    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -973,19 +719,15 @@ class InfoLevel:
         ...
     def __index__(self) -> int:
         ...
-    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __init__(self, value: int) -> None:
         ...
     def __int__(self) -> int:
         ...
-    @typing.overload
-    def __ne__(self, other: InfoLevel) -> bool:
-        ...
-    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
         ...
-    def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __setstate__(self, state: int) -> None:
         ...
     def __str__(self) -> str:
         ...
@@ -1012,6 +754,7 @@ class InfoReference:
         ...
 class InstantActions:
     __hash__: typing.ClassVar[None] = None
+    actions: list[Action]
     header: Header
     @staticmethod
     def from_json(arg0: json) -> InstantActions:
@@ -1024,19 +767,14 @@ class InstantActions:
         ...
     def json(self) -> json:
         ...
-    @property
-    def actions(self) -> list[Action]:
-        ...
-    @actions.setter
-    def actions(self, arg0: collections.abc.Sequence[Action]) -> None:
-        ...
 class Load:
     __hash__: typing.ClassVar[None] = None
-    bounding_box_reference: vda5050_core._core.types.BoundingBoxReference | None
-    load_dimensions: vda5050_core._core.types.LoadDimensions | None
+    bounding_box_reference: BoundingBoxReference | None
+    load_dimensions: LoadDimensions | None
     load_id: str | None
     load_position: str | None
     load_type: str | None
+    weight: float | None
     @staticmethod
     def from_json(arg0: json) -> Load:
         ...
@@ -1048,14 +786,11 @@ class Load:
         ...
     def json(self) -> json:
         ...
-    @property
-    def weight(self) -> float | None:
-        ...
-    @weight.setter
-    def weight(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
 class LoadDimensions:
     __hash__: typing.ClassVar[None] = None
+    height: float | None
+    length: float
+    width: float
     @staticmethod
     def from_json(arg0: json) -> LoadDimensions:
         ...
@@ -1067,30 +802,25 @@ class LoadDimensions:
         ...
     def json(self) -> json:
         ...
-    @property
-    def height(self) -> float | None:
-        ...
-    @height.setter
-    def height(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def length(self) -> float:
-        ...
-    @length.setter
-    def length(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def width(self) -> float:
-        ...
-    @width.setter
-    def width(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
 class LoadSet:
     __hash__: typing.ClassVar[None] = None
-    bounding_box_reference: vda5050_core._core.types.BoundingBoxReference | None
+    agv_acceleration_limit: float | None
+    agv_deceleration_limit: float | None
+    agv_speed_limit: float | None
+    bounding_box_reference: BoundingBoxReference | None
     description: str | None
-    load_dimensions: vda5050_core._core.types.LoadDimensions | None
+    drop_time: float | None
+    load_dimensions: LoadDimensions | None
+    load_positions: list[str] | None
     load_type: str
+    max_load_handling_depth: float | None
+    max_load_handling_height: float | None
+    max_load_handling_tilt: float | None
+    max_weight: float | None
+    min_load_handling_depth: float | None
+    min_load_handling_height: float | None
+    min_load_handling_tilt: float | None
+    pick_time: float | None
     set_name: str
     @staticmethod
     def from_json(arg0: json) -> LoadSet:
@@ -1103,86 +833,10 @@ class LoadSet:
         ...
     def json(self) -> json:
         ...
-    @property
-    def agv_acceleration_limit(self) -> float | None:
-        ...
-    @agv_acceleration_limit.setter
-    def agv_acceleration_limit(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def agv_deceleration_limit(self) -> float | None:
-        ...
-    @agv_deceleration_limit.setter
-    def agv_deceleration_limit(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def agv_speed_limit(self) -> float | None:
-        ...
-    @agv_speed_limit.setter
-    def agv_speed_limit(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def drop_time(self) -> float | None:
-        ...
-    @drop_time.setter
-    def drop_time(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def load_positions(self) -> list[str] | None:
-        ...
-    @load_positions.setter
-    def load_positions(self, arg0: collections.abc.Sequence[str] | None) -> None:
-        ...
-    @property
-    def max_load_handling_depth(self) -> float | None:
-        ...
-    @max_load_handling_depth.setter
-    def max_load_handling_depth(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def max_load_handling_height(self) -> float | None:
-        ...
-    @max_load_handling_height.setter
-    def max_load_handling_height(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def max_load_handling_tilt(self) -> float | None:
-        ...
-    @max_load_handling_tilt.setter
-    def max_load_handling_tilt(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def max_weight(self) -> float | None:
-        ...
-    @max_weight.setter
-    def max_weight(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def min_load_handling_depth(self) -> float | None:
-        ...
-    @min_load_handling_depth.setter
-    def min_load_handling_depth(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def min_load_handling_height(self) -> float | None:
-        ...
-    @min_load_handling_height.setter
-    def min_load_handling_height(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def min_load_handling_tilt(self) -> float | None:
-        ...
-    @min_load_handling_tilt.setter
-    def min_load_handling_tilt(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def pick_time(self) -> float | None:
-        ...
-    @pick_time.setter
-    def pick_time(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
 class LoadSpecification:
     __hash__: typing.ClassVar[None] = None
+    load_positions: list[str] | None
+    load_sets: list[LoadSet] | None
     @staticmethod
     def from_json(arg0: json) -> LoadSpecification:
         ...
@@ -1194,20 +848,24 @@ class LoadSpecification:
         ...
     def json(self) -> json:
         ...
-    @property
-    def load_positions(self) -> list[str] | None:
-        ...
-    @load_positions.setter
-    def load_positions(self, arg0: collections.abc.Sequence[str] | None) -> None:
-        ...
-    @property
-    def load_sets(self) -> list[LoadSet] | None:
-        ...
-    @load_sets.setter
-    def load_sets(self, arg0: collections.abc.Sequence[LoadSet] | None) -> None:
-        ...
 class MaxArrayLens:
     __hash__: typing.ClassVar[None] = None
+    actions_actions_parameters: int | None
+    edge_actions: int | None
+    error_error_references: int | None
+    information_info_references: int | None
+    instant_actions: int | None
+    node_actions: int | None
+    order_edges: int | None
+    order_nodes: int | None
+    state_action_states: int | None
+    state_edge_states: int | None
+    state_errors: int | None
+    state_information: int | None
+    state_loads: int | None
+    state_node_states: int | None
+    trajectory_control_points: int | None
+    trajectory_knot_vector: int | None
     @staticmethod
     def from_json(arg0: json) -> MaxArrayLens:
         ...
@@ -1219,105 +877,15 @@ class MaxArrayLens:
         ...
     def json(self) -> json:
         ...
-    @property
-    def actions_actions_parameters(self) -> int | None:
-        ...
-    @actions_actions_parameters.setter
-    def actions_actions_parameters(self, arg0: typing.SupportsInt | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def edge_actions(self) -> int | None:
-        ...
-    @edge_actions.setter
-    def edge_actions(self, arg0: typing.SupportsInt | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def error_error_references(self) -> int | None:
-        ...
-    @error_error_references.setter
-    def error_error_references(self, arg0: typing.SupportsInt | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def information_info_references(self) -> int | None:
-        ...
-    @information_info_references.setter
-    def information_info_references(self, arg0: typing.SupportsInt | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def instant_actions(self) -> int | None:
-        ...
-    @instant_actions.setter
-    def instant_actions(self, arg0: typing.SupportsInt | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def node_actions(self) -> int | None:
-        ...
-    @node_actions.setter
-    def node_actions(self, arg0: typing.SupportsInt | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def order_edges(self) -> int | None:
-        ...
-    @order_edges.setter
-    def order_edges(self, arg0: typing.SupportsInt | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def order_nodes(self) -> int | None:
-        ...
-    @order_nodes.setter
-    def order_nodes(self, arg0: typing.SupportsInt | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def state_action_states(self) -> int | None:
-        ...
-    @state_action_states.setter
-    def state_action_states(self, arg0: typing.SupportsInt | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def state_edge_states(self) -> int | None:
-        ...
-    @state_edge_states.setter
-    def state_edge_states(self, arg0: typing.SupportsInt | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def state_errors(self) -> int | None:
-        ...
-    @state_errors.setter
-    def state_errors(self, arg0: typing.SupportsInt | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def state_information(self) -> int | None:
-        ...
-    @state_information.setter
-    def state_information(self, arg0: typing.SupportsInt | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def state_loads(self) -> int | None:
-        ...
-    @state_loads.setter
-    def state_loads(self, arg0: typing.SupportsInt | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def state_node_states(self) -> int | None:
-        ...
-    @state_node_states.setter
-    def state_node_states(self, arg0: typing.SupportsInt | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def trajectory_control_points(self) -> int | None:
-        ...
-    @trajectory_control_points.setter
-    def trajectory_control_points(self, arg0: typing.SupportsInt | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def trajectory_knot_vector(self) -> int | None:
-        ...
-    @trajectory_knot_vector.setter
-    def trajectory_knot_vector(self, arg0: typing.SupportsInt | typing.SupportsIndex | None) -> None:
-        ...
 class MaxStringLens:
     __hash__: typing.ClassVar[None] = None
+    enum_len: int | None
+    id_len: int | None
     id_numerical_only: bool | None
+    load_id_len: int | None
+    msg_len: int | None
+    topic_elem_len: int | None
+    topic_serial_len: int | None
     @staticmethod
     def from_json(arg0: json) -> MaxStringLens:
         ...
@@ -1329,48 +897,14 @@ class MaxStringLens:
         ...
     def json(self) -> json:
         ...
-    @property
-    def enum_len(self) -> int | None:
-        ...
-    @enum_len.setter
-    def enum_len(self, arg0: typing.SupportsInt | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def id_len(self) -> int | None:
-        ...
-    @id_len.setter
-    def id_len(self, arg0: typing.SupportsInt | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def load_id_len(self) -> int | None:
-        ...
-    @load_id_len.setter
-    def load_id_len(self, arg0: typing.SupportsInt | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def msg_len(self) -> int | None:
-        ...
-    @msg_len.setter
-    def msg_len(self, arg0: typing.SupportsInt | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def topic_elem_len(self) -> int | None:
-        ...
-    @topic_elem_len.setter
-    def topic_elem_len(self, arg0: typing.SupportsInt | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def topic_serial_len(self) -> int | None:
-        ...
-    @topic_serial_len.setter
-    def topic_serial_len(self, arg0: typing.SupportsInt | typing.SupportsIndex | None) -> None:
-        ...
 class Node:
     __hash__: typing.ClassVar[None] = None
+    actions: list[Action]
     node_description: str | None
     node_id: str
-    node_position: vda5050_core._core.types.NodePosition | None
+    node_position: NodePosition | None
     released: bool
+    sequence_id: int
     @staticmethod
     def from_json(arg0: json) -> Node:
         ...
@@ -1382,22 +916,15 @@ class Node:
         ...
     def json(self) -> json:
         ...
-    @property
-    def actions(self) -> list[Action]:
-        ...
-    @actions.setter
-    def actions(self, arg0: collections.abc.Sequence[Action]) -> None:
-        ...
-    @property
-    def sequence_id(self) -> int:
-        ...
-    @sequence_id.setter
-    def sequence_id(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
-        ...
 class NodePosition:
     __hash__: typing.ClassVar[None] = None
+    allowed_deviation_theta: float | None
+    allowed_deviation_x_y: float | None
     map_description: str | None
     map_id: str
+    theta: float | None
+    x: float
+    y: float
     @staticmethod
     def from_json(arg0: json) -> NodePosition:
         ...
@@ -1409,42 +936,13 @@ class NodePosition:
         ...
     def json(self) -> json:
         ...
-    @property
-    def allowed_deviation_theta(self) -> float | None:
-        ...
-    @allowed_deviation_theta.setter
-    def allowed_deviation_theta(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def allowed_deviation_x_y(self) -> float | None:
-        ...
-    @allowed_deviation_x_y.setter
-    def allowed_deviation_x_y(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def theta(self) -> float | None:
-        ...
-    @theta.setter
-    def theta(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def x(self) -> float:
-        ...
-    @x.setter
-    def x(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def y(self) -> float:
-        ...
-    @y.setter
-    def y(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
 class NodeState:
     __hash__: typing.ClassVar[None] = None
     node_description: str | None
     node_id: str
-    node_position: vda5050_core._core.types.NodePosition | None
+    node_position: NodePosition | None
     released: bool
+    sequence_id: int
     @staticmethod
     def from_json(arg0: json) -> NodeState:
         ...
@@ -1455,12 +953,6 @@ class NodeState:
     def __ne__(self, arg0: NodeState) -> bool:
         ...
     def json(self) -> json:
-        ...
-    @property
-    def sequence_id(self) -> int:
-        ...
-    @sequence_id.setter
-    def sequence_id(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
         ...
 class OperatingMode:
     """
@@ -1482,10 +974,6 @@ class OperatingMode:
     SERVICE: typing.ClassVar[OperatingMode]  # value = <OperatingMode.SERVICE: 3>
     TEACHIN: typing.ClassVar[OperatingMode]  # value = <OperatingMode.TEACHIN: 4>
     __members__: typing.ClassVar[dict[str, OperatingMode]]  # value = {'AUTOMATIC': <OperatingMode.AUTOMATIC: 0>, 'SEMIAUTOMATIC': <OperatingMode.SEMIAUTOMATIC: 1>, 'MANUAL': <OperatingMode.MANUAL: 2>, 'SERVICE': <OperatingMode.SERVICE: 3>, 'TEACHIN': <OperatingMode.TEACHIN: 4>}
-    @typing.overload
-    def __eq__(self, other: OperatingMode) -> bool:
-        ...
-    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -1494,19 +982,15 @@ class OperatingMode:
         ...
     def __index__(self) -> int:
         ...
-    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __init__(self, value: int) -> None:
         ...
     def __int__(self) -> int:
         ...
-    @typing.overload
-    def __ne__(self, other: OperatingMode) -> bool:
-        ...
-    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
         ...
-    def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __setstate__(self, state: int) -> None:
         ...
     def __str__(self) -> str:
         ...
@@ -1534,8 +1018,11 @@ class OptionalParameter:
         ...
 class Order:
     __hash__: typing.ClassVar[None] = None
+    edges: list[Edge]
     header: Header
+    nodes: list[Node]
     order_id: str
+    order_update_id: int
     zone_set_id: str | None
     @staticmethod
     def from_json(arg0: json) -> Order:
@@ -1548,24 +1035,6 @@ class Order:
         ...
     def json(self) -> json:
         ...
-    @property
-    def edges(self) -> list[Edge]:
-        ...
-    @edges.setter
-    def edges(self, arg0: collections.abc.Sequence[Edge]) -> None:
-        ...
-    @property
-    def nodes(self) -> list[Node]:
-        ...
-    @nodes.setter
-    def nodes(self, arg0: collections.abc.Sequence[Node]) -> None:
-        ...
-    @property
-    def order_update_id(self) -> int:
-        ...
-    @order_update_id.setter
-    def order_update_id(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
-        ...
 class OrientationType:
     """
     Members:
@@ -1577,10 +1046,6 @@ class OrientationType:
     GLOBAL: typing.ClassVar[OrientationType]  # value = <OrientationType.GLOBAL: 0>
     TANGENTIAL: typing.ClassVar[OrientationType]  # value = <OrientationType.TANGENTIAL: 1>
     __members__: typing.ClassVar[dict[str, OrientationType]]  # value = {'GLOBAL': <OrientationType.GLOBAL: 0>, 'TANGENTIAL': <OrientationType.TANGENTIAL: 1>}
-    @typing.overload
-    def __eq__(self, other: OrientationType) -> bool:
-        ...
-    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -1589,19 +1054,15 @@ class OrientationType:
         ...
     def __index__(self) -> int:
         ...
-    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __init__(self, value: int) -> None:
         ...
     def __int__(self) -> int:
         ...
-    @typing.overload
-    def __ne__(self, other: OrientationType) -> bool:
-        ...
-    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
         ...
-    def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __setstate__(self, state: int) -> None:
         ...
     def __str__(self) -> str:
         ...
@@ -1613,6 +1074,16 @@ class OrientationType:
         ...
 class PhysicalParameters:
     __hash__: typing.ClassVar[None] = None
+    acceleration_max: float
+    angular_speed_max: float | None
+    angular_speed_min: float | None
+    deceleration_max: float
+    height_max: float
+    height_min: float
+    length: float
+    speed_max: float
+    speed_min: float
+    width: float
     @staticmethod
     def from_json(arg0: json) -> PhysicalParameters:
         ...
@@ -1624,68 +1095,10 @@ class PhysicalParameters:
         ...
     def json(self) -> json:
         ...
-    @property
-    def acceleration_max(self) -> float:
-        ...
-    @acceleration_max.setter
-    def acceleration_max(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def angular_speed_max(self) -> float | None:
-        ...
-    @angular_speed_max.setter
-    def angular_speed_max(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def angular_speed_min(self) -> float | None:
-        ...
-    @angular_speed_min.setter
-    def angular_speed_min(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def deceleration_max(self) -> float:
-        ...
-    @deceleration_max.setter
-    def deceleration_max(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def height_max(self) -> float:
-        ...
-    @height_max.setter
-    def height_max(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def height_min(self) -> float:
-        ...
-    @height_min.setter
-    def height_min(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def length(self) -> float:
-        ...
-    @length.setter
-    def length(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def speed_max(self) -> float:
-        ...
-    @speed_max.setter
-    def speed_max(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def speed_min(self) -> float:
-        ...
-    @speed_min.setter
-    def speed_min(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def width(self) -> float:
-        ...
-    @width.setter
-    def width(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
 class PolygonPoint:
     __hash__: typing.ClassVar[None] = None
+    x: float
+    y: float
     @staticmethod
     def from_json(arg0: json) -> PolygonPoint:
         ...
@@ -1697,20 +1110,11 @@ class PolygonPoint:
         ...
     def json(self) -> json:
         ...
-    @property
-    def x(self) -> float:
-        ...
-    @x.setter
-    def x(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def y(self) -> float:
-        ...
-    @y.setter
-    def y(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
 class Position:
     __hash__: typing.ClassVar[None] = None
+    theta: float | None
+    x: float
+    y: float
     @staticmethod
     def from_json(arg0: json) -> Position:
         ...
@@ -1722,26 +1126,10 @@ class Position:
         ...
     def json(self) -> json:
         ...
-    @property
-    def theta(self) -> float | None:
-        ...
-    @theta.setter
-    def theta(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def x(self) -> float:
-        ...
-    @x.setter
-    def x(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def y(self) -> float:
-        ...
-    @y.setter
-    def y(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
 class ProtocolFeatures:
     __hash__: typing.ClassVar[None] = None
+    agv_actions: list[AGVAction]
+    optional_parameters: list[OptionalParameter]
     @staticmethod
     def from_json(arg0: json) -> ProtocolFeatures:
         ...
@@ -1752,18 +1140,6 @@ class ProtocolFeatures:
     def __ne__(self, arg0: ProtocolFeatures) -> bool:
         ...
     def json(self) -> json:
-        ...
-    @property
-    def agv_actions(self) -> list[AGVAction]:
-        ...
-    @agv_actions.setter
-    def agv_actions(self, arg0: collections.abc.Sequence[AGVAction]) -> None:
-        ...
-    @property
-    def optional_parameters(self) -> list[OptionalParameter]:
-        ...
-    @optional_parameters.setter
-    def optional_parameters(self, arg0: collections.abc.Sequence[OptionalParameter]) -> None:
         ...
 class ProtocolLimits:
     __hash__: typing.ClassVar[None] = None
@@ -1798,17 +1174,26 @@ class SafetyState:
         ...
 class State:
     __hash__: typing.ClassVar[None] = None
-    agv_position: vda5050_core._core.types.AGVPosition | None
+    action_states: list[ActionState]
+    agv_position: AGVPosition | None
     battery_state: BatteryState
+    distance_since_last_node: float | None
     driving: bool
+    edge_states: list[EdgeState]
+    errors: list[Error]
     header: Header
+    information: list[Info] | None
     last_node_id: str
+    last_node_sequence_id: int
+    loads: list[Load] | None
     new_base_request: bool | None
+    node_states: list[NodeState]
     operating_mode: OperatingMode
     order_id: str
+    order_update_id: int
     paused: bool | None
     safety_state: SafetyState
-    velocity: vda5050_core._core.types.Velocity | None
+    velocity: Velocity | None
     zone_set_id: str | None
     @staticmethod
     def from_json(arg0: json) -> State:
@@ -1821,60 +1206,6 @@ class State:
         ...
     def json(self) -> json:
         ...
-    @property
-    def action_states(self) -> list[ActionState]:
-        ...
-    @action_states.setter
-    def action_states(self, arg0: collections.abc.Sequence[ActionState]) -> None:
-        ...
-    @property
-    def distance_since_last_node(self) -> float | None:
-        ...
-    @distance_since_last_node.setter
-    def distance_since_last_node(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def edge_states(self) -> list[EdgeState]:
-        ...
-    @edge_states.setter
-    def edge_states(self, arg0: collections.abc.Sequence[EdgeState]) -> None:
-        ...
-    @property
-    def errors(self) -> list[Error]:
-        ...
-    @errors.setter
-    def errors(self, arg0: collections.abc.Sequence[Error]) -> None:
-        ...
-    @property
-    def information(self) -> list[Info] | None:
-        ...
-    @information.setter
-    def information(self, arg0: collections.abc.Sequence[Info] | None) -> None:
-        ...
-    @property
-    def last_node_sequence_id(self) -> int:
-        ...
-    @last_node_sequence_id.setter
-    def last_node_sequence_id(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def loads(self) -> list[Load] | None:
-        ...
-    @loads.setter
-    def loads(self, arg0: collections.abc.Sequence[Load] | None) -> None:
-        ...
-    @property
-    def node_states(self) -> list[NodeState]:
-        ...
-    @node_states.setter
-    def node_states(self, arg0: collections.abc.Sequence[NodeState]) -> None:
-        ...
-    @property
-    def order_update_id(self) -> int:
-        ...
-    @order_update_id.setter
-    def order_update_id(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
-        ...
 class Support:
     """
     Members:
@@ -1886,10 +1217,6 @@ class Support:
     REQUIRED: typing.ClassVar[Support]  # value = <Support.REQUIRED: 1>
     SUPPORTED: typing.ClassVar[Support]  # value = <Support.SUPPORTED: 0>
     __members__: typing.ClassVar[dict[str, Support]]  # value = {'SUPPORTED': <Support.SUPPORTED: 0>, 'REQUIRED': <Support.REQUIRED: 1>}
-    @typing.overload
-    def __eq__(self, other: Support) -> bool:
-        ...
-    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -1898,19 +1225,15 @@ class Support:
         ...
     def __index__(self) -> int:
         ...
-    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __init__(self, value: int) -> None:
         ...
     def __int__(self) -> int:
         ...
-    @typing.overload
-    def __ne__(self, other: Support) -> bool:
-        ...
-    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
         ...
-    def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __setstate__(self, state: int) -> None:
         ...
     def __str__(self) -> str:
         ...
@@ -1922,6 +1245,10 @@ class Support:
         ...
 class Timing:
     __hash__: typing.ClassVar[None] = None
+    default_state_interval: float | None
+    min_order_interval: float
+    min_state_interval: float
+    visualization_interval: float | None
     @staticmethod
     def from_json(arg0: json) -> Timing:
         ...
@@ -1933,32 +1260,11 @@ class Timing:
         ...
     def json(self) -> json:
         ...
-    @property
-    def default_state_interval(self) -> float | None:
-        ...
-    @default_state_interval.setter
-    def default_state_interval(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def min_order_interval(self) -> float:
-        ...
-    @min_order_interval.setter
-    def min_order_interval(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def min_state_interval(self) -> float:
-        ...
-    @min_state_interval.setter
-    def min_state_interval(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def visualization_interval(self) -> float | None:
-        ...
-    @visualization_interval.setter
-    def visualization_interval(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
 class Trajectory:
     __hash__: typing.ClassVar[None] = None
+    control_points: list[ControlPoint]
+    degree: float
+    knot_vector: list[float]
     @staticmethod
     def from_json(arg0: json) -> Trajectory:
         ...
@@ -1970,28 +1276,13 @@ class Trajectory:
         ...
     def json(self) -> json:
         ...
-    @property
-    def control_points(self) -> list[ControlPoint]:
-        ...
-    @control_points.setter
-    def control_points(self, arg0: collections.abc.Sequence[ControlPoint]) -> None:
-        ...
-    @property
-    def degree(self) -> float:
-        ...
-    @degree.setter
-    def degree(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def knot_vector(self) -> list[float]:
-        ...
-    @knot_vector.setter
-    def knot_vector(self, arg0: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex]) -> None:
-        ...
 class TypeSpecification:
     __hash__: typing.ClassVar[None] = None
     agv_class: AGVClass
     agv_kinematic: AGVKinematic
+    localization_types: list[str]
+    max_load_mass: float
+    navigation_types: list[str]
     series_description: str | None
     series_name: str
     @staticmethod
@@ -2004,24 +1295,6 @@ class TypeSpecification:
     def __ne__(self, arg0: TypeSpecification) -> bool:
         ...
     def json(self) -> json:
-        ...
-    @property
-    def localization_types(self) -> list[str]:
-        ...
-    @localization_types.setter
-    def localization_types(self, arg0: collections.abc.Sequence[str]) -> None:
-        ...
-    @property
-    def max_load_mass(self) -> float:
-        ...
-    @max_load_mass.setter
-    def max_load_mass(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def navigation_types(self) -> list[str]:
-        ...
-    @navigation_types.setter
-    def navigation_types(self, arg0: collections.abc.Sequence[str]) -> None:
         ...
 class ValueDataType:
     """
@@ -2049,10 +1322,6 @@ class ValueDataType:
     OBJECT: typing.ClassVar[ValueDataType]  # value = <ValueDataType.OBJECT: 5>
     STRING: typing.ClassVar[ValueDataType]  # value = <ValueDataType.STRING: 4>
     __members__: typing.ClassVar[dict[str, ValueDataType]]  # value = {'BOOL': <ValueDataType.BOOL: 0>, 'NUMBER': <ValueDataType.NUMBER: 1>, 'INTEGER': <ValueDataType.INTEGER: 2>, 'FLOAT': <ValueDataType.FLOAT: 3>, 'STRING': <ValueDataType.STRING: 4>, 'OBJECT': <ValueDataType.OBJECT: 5>, 'ARRAY': <ValueDataType.ARRAY: 6>}
-    @typing.overload
-    def __eq__(self, other: ValueDataType) -> bool:
-        ...
-    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -2061,19 +1330,15 @@ class ValueDataType:
         ...
     def __index__(self) -> int:
         ...
-    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __init__(self, value: int) -> None:
         ...
     def __int__(self) -> int:
         ...
-    @typing.overload
-    def __ne__(self, other: ValueDataType) -> bool:
-        ...
-    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
         ...
-    def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __setstate__(self, state: int) -> None:
         ...
     def __str__(self) -> str:
         ...
@@ -2085,6 +1350,9 @@ class ValueDataType:
         ...
 class Velocity:
     __hash__: typing.ClassVar[None] = None
+    omega: float | None
+    vx: float | None
+    vy: float | None
     @staticmethod
     def from_json(arg0: json) -> Velocity:
         ...
@@ -2096,29 +1364,11 @@ class Velocity:
         ...
     def json(self) -> json:
         ...
-    @property
-    def omega(self) -> float | None:
-        ...
-    @omega.setter
-    def omega(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def vx(self) -> float | None:
-        ...
-    @vx.setter
-    def vx(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
-    @property
-    def vy(self) -> float | None:
-        ...
-    @vy.setter
-    def vy(self, arg0: typing.SupportsFloat | typing.SupportsIndex | None) -> None:
-        ...
 class Visualization:
     __hash__: typing.ClassVar[None] = None
-    agv_position: vda5050_core._core.types.AGVPosition | None
+    agv_position: AGVPosition | None
     header: Header
-    velocity: vda5050_core._core.types.Velocity | None
+    velocity: Velocity | None
     @staticmethod
     def from_json(arg0: json) -> Visualization:
         ...
@@ -2132,11 +1382,14 @@ class Visualization:
         ...
 class WheelDefinition:
     __hash__: typing.ClassVar[None] = None
+    center_displacement: float
     constraints: str | None
+    diameter: float
     is_active_driven: bool
     is_active_steered: bool
     position: Position
     type: WheelDefinitionType
+    width: float
     @staticmethod
     def from_json(arg0: json) -> WheelDefinition:
         ...
@@ -2147,24 +1400,6 @@ class WheelDefinition:
     def __ne__(self, arg0: WheelDefinition) -> bool:
         ...
     def json(self) -> json:
-        ...
-    @property
-    def center_displacement(self) -> float:
-        ...
-    @center_displacement.setter
-    def center_displacement(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def diameter(self) -> float:
-        ...
-    @diameter.setter
-    def diameter(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
-        ...
-    @property
-    def width(self) -> float:
-        ...
-    @width.setter
-    def width(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
 class WheelDefinitionType:
     """
@@ -2183,10 +1418,6 @@ class WheelDefinitionType:
     FIXED: typing.ClassVar[WheelDefinitionType]  # value = <WheelDefinitionType.FIXED: 2>
     MECANUM: typing.ClassVar[WheelDefinitionType]  # value = <WheelDefinitionType.MECANUM: 3>
     __members__: typing.ClassVar[dict[str, WheelDefinitionType]]  # value = {'DRIVE': <WheelDefinitionType.DRIVE: 0>, 'CASTER': <WheelDefinitionType.CASTER: 1>, 'FIXED': <WheelDefinitionType.FIXED: 2>, 'MECANUM': <WheelDefinitionType.MECANUM: 3>}
-    @typing.overload
-    def __eq__(self, other: WheelDefinitionType) -> bool:
-        ...
-    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -2195,19 +1426,15 @@ class WheelDefinitionType:
         ...
     def __index__(self) -> int:
         ...
-    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __init__(self, value: int) -> None:
         ...
     def __int__(self) -> int:
         ...
-    @typing.overload
-    def __ne__(self, other: WheelDefinitionType) -> bool:
-        ...
-    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
         ...
-    def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def __setstate__(self, state: int) -> None:
         ...
     def __str__(self) -> str:
         ...

@@ -6,7 +6,6 @@
 VDA5050 MQTT transport layer
 """
 from __future__ import annotations
-import collections.abc
 import typing
 __all__: list[str] = ['MqttClientInterface', 'create_default_client_shared']
 class MqttClientInterface:
@@ -18,15 +17,15 @@ class MqttClientInterface:
         ...
     def disconnect(self) -> None:
         ...
-    def publish(self, topic: str, message: str, qos: typing.SupportsInt | typing.SupportsIndex, retain: bool = False) -> None:
+    def publish(self, topic: str, message: str, qos: int, retain: bool = False) -> None:
         ...
-    def set_connected_callback(self, handler: collections.abc.Callable[[str], None]) -> None:
+    def set_connected_callback(self, handler: typing.Callable[[str], None]) -> None:
         ...
-    def set_connection_lost_callback(self, handler: collections.abc.Callable[[str], None]) -> None:
+    def set_connection_lost_callback(self, handler: typing.Callable[[str], None]) -> None:
         ...
-    def set_will(self, topic: str, message: str, qos: typing.SupportsInt | typing.SupportsIndex, retain: bool = True) -> None:
+    def set_will(self, topic: str, message: str, qos: int, retain: bool = True) -> None:
         ...
-    def subscribe(self, topic: str, handler: collections.abc.Callable[[str, str], None], qos: typing.SupportsInt | typing.SupportsIndex) -> None:
+    def subscribe(self, topic: str, handler: typing.Callable[[str, str], None], qos: int) -> None:
         ...
     def unsubscribe(self, topic: str) -> None:
         ...
