@@ -33,12 +33,35 @@ install_linux() {
   fi
 }
 
+git_shallow_clone() {
+  if [ $# -lt 3 ]; then
+    echo "Error: git_shallow_clone $@"
+    echo "Usage: git_shallow_clone <repo_url> <repo_dir> <repo_tag>"
+    exit 1
+  fi
+  local repo_url=$1; shift
+  local repo_dir=$1; shift
+  local repo_tag=$1; shift
+
+  mkdir $repo_dir
+  git -C $repo_dir init -q
+  git -C $repo_dir remote add origin $repo_url
+  git -C $repo_dir fetch --depth 1 origin $repo_tag
+  git -C $repo_dir checkout -q $repo_tag
+}
+
+git_shallow_clone_recursive() {
+  git_shallow_clone "$@"
+  local repo_dir=${2:-.}
+  git -C $repo_dir submodule update --init --recursive --depth 1
+}
+
 install_fmt_from_source() {
   local work
   work="$(mktemp -d)"
 
-  git clone --depth 1 --branch "$FMT_TAG" \
-    https://github.com/fmtlib/fmt.git "$work/fmt"
+  git_shallow_clone \
+    https://github.com/fmtlib/fmt.git "$work/fmt" "$FMT_TAG"
   cmake -S "$work/fmt" -B "$work/fmt/build" \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" \
@@ -54,8 +77,8 @@ install_json_from_source() {
   local work
   work="$(mktemp -d)"
 
-  git clone --depth 1 --branch "$NLOHMANN_JSON_TAG" \
-    https://github.com/nlohmann/json.git "$work/json"
+  git_shallow_clone \
+    https://github.com/nlohmann/json.git "$work/json" "$NLOHMANN_JSON_TAG"
   cmake -S "$work/json" -B "$work/json/build" \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" \
@@ -72,8 +95,8 @@ install_pybind11_from_source() {
   local work
   work="$(mktemp -d)"
 
-  git clone --depth 1 --branch "$PYBIND11_TAG" \
-    https://github.com/pybind/pybind11.git "$work/pybind11"
+  git_shallow_clone \
+    https://github.com/pybind/pybind11.git "$work/pybind11" "$PYBIND11_TAG"
   cmake -S "$work/pybind11" -B "$work/pybind11/build" \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" \
@@ -93,8 +116,8 @@ install_pybind11_json_from_source() {
   local work
   work="$(mktemp -d)"
 
-  git clone --depth 1 --branch "$PYBIND11_JSON_TAG" \
-    https://github.com/pybind/pybind11_json.git "$work/pb11j"
+  git_shallow_clone \
+    https://github.com/pybind/pybind11_json.git "$work/pb11j" "$PYBIND11_JSON_TAG"
   # pybind11_json 0.2.13 still declares cmake_minimum_required(< 3.5);
   # CMake 4+ rejects that unless CMAKE_POLICY_VERSION_MINIMUM is set.
   # Empty PYTHON_INCLUDE_DIRS so the INTERFACE target does not bake the
@@ -155,11 +178,9 @@ install_macos() {
 install_paho_from_source() {
   local work
   work="$(mktemp -d)"
-  # shellcheck disable=SC2064
-  trap "rm -rf '$work'" EXIT
 
-  git clone --depth 1 --branch "$PAHO_CPP_TAG" --recursive \
-    https://github.com/eclipse/paho.mqtt.cpp.git "$work/paho.mqtt.cpp"
+  git_shallow_clone_recursive \
+    https://github.com/eclipse/paho.mqtt.cpp.git "$work/paho.mqtt.cpp" "$PAHO_CPP_TAG"
 
   cmake -S "$work/paho.mqtt.cpp" -B "$work/paho.mqtt.cpp/build" \
     -DCMAKE_BUILD_TYPE=Release \
@@ -172,6 +193,8 @@ install_paho_from_source() {
 
   cmake --build "$work/paho.mqtt.cpp/build" --parallel
   cmake --install "$work/paho.mqtt.cpp/build"
+
+  rm -rf "$work"
 }
 
 case "$(uname -s)" in
