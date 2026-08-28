@@ -18,6 +18,7 @@
 
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
+#include <memory>
 
 #include "vda5050_core/transport/mqtt_client_interface.hpp"
 
@@ -30,8 +31,12 @@ using vda5050_core::transport::MqttClientInterface;
 
 namespace {
 
+#if defined(PYBIND11_HAS_INTERNALS_WITH_SMART_HODLER_SUPPORT)
 class PyMqttClientInterface : public MqttClientInterface,
                               public py::trampoline_self_life_support
+#else
+class PyMqttClientInterface : public MqttClientInterface
+#endif
 {
 public:
   using MqttClientInterface::MqttClientInterface;
@@ -98,9 +103,14 @@ void bind_transport(py::module_& m)
   auto m_transport =
     m.def_submodule("transport", "VDA5050 MQTT transport layer");
 
+#if defined(PYBIND11_HAS_INTERNALS_WITH_SMART_HODLER_SUPPORT)
+  py::class_<MqttClientInterface, PyMqttClientInterface, py::smart_holder>(
+    m_transport, "MqttClientInterface")
+#else
   py::class_<
     MqttClientInterface, PyMqttClientInterface,
-    py::smart_holder>(m_transport, "MqttClientInterface")
+    std::shared_ptr<MqttClientInterface> >(m_transport, "MqttClientInterface")
+#endif
     .def(py::init<>())
     .def("connect", &MqttClientInterface::connect)
     .def("disconnect", &MqttClientInterface::disconnect)
