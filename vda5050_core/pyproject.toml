@@ -33,7 +33,6 @@ lint = [
 ]
 dev = [
     { include-group = "test" },
-    { include-group = "lint" },
     "pybind11-stubgen>=2.5.5",
 ]
 
