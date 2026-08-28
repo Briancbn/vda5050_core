@@ -2,24 +2,27 @@
 # Install native build deps for vda5050 (fmt, nlohmann_json, Paho MQTT C++).
 set -euo pipefail
 
-PAHO_CPP_TAG="${PAHO_CPP_TAG:-v1.6.0}"
-FMT_TAG="${FMT_TAG:-11.2.0}"
-NLOHMANN_JSON_TAG="${NLOHMANN_JSON_TAG:-v3.11.3}"
-PYBIND11_TAG="${PYBIND11_TAG:-v2.13.6}"
-PYBIND11_JSON_TAG="${PYBIND11_JSON_TAG:-0.2.13}"
+PAHO_CPP_TAG="${PAHO_CPP_TAG:-c0b43a49d7b7e7b5e7009658ca22f19ac1112c83}"  # v1.6.0
+FMT_TAG="${FMT_TAG:-40626af88bd7df9a5fb80be7b25ac85b122d6c21}"  # 11.2.0
+NLOHMANN_JSON_TAG="${NLOHMANN_JSON_TAG:-9cca280a4d0ccf0c08f47a99aa71d1b0e52f8d03}"  # v3.11.3
+PYBIND11_TAG="${PYBIND11_TAG:-a2e59f0e7065404b44dfe92a28aca47ba1378dc4}"  # v2.13.6
+PYBIND11_JSON_TAG="${PYBIND11_JSON_TAG:-b02a2ad597d224c3faee1f05a56d81d4c4453092}"  # 0.2.13
 INSTALL_PREFIX="${CMAKE_INSTALL_PREFIX:-/usr/local}"
 
 install_linux() {
   if command -v yum >/dev/null 2>&1; then
     # manylinux / Alma Linux images
-    yum install -y cmake git openssl-devel fmt-devel paho-c-devel paho-cpp-devel
+    yum install -y cmake git openssl-devel
+    install_fmt_from_source
     install_json_from_source
     install_pybind11_from_source
     install_pybind11_json_from_source
+    install_paho_from_source
   elif command -v apk >/dev/null 2>&1; then
     # musllinux / Alpine images
     apk add --no-cache \
       cmake git openssl-dev fmt-dev
+    install_fmt_from_source
     install_json_from_source
     install_pybind11_from_source
     install_pybind11_json_from_source
@@ -28,6 +31,23 @@ install_linux() {
     echo "Unsupported Linux package manager" >&2
     exit 1
   fi
+}
+
+install_fmt_from_source() {
+  local work
+  work="$(mktemp -d)"
+
+  git clone --depth 1 --branch "$FMT_TAG" \
+    https://github.com/fmtlib/fmt.git "$work/fmt"
+  cmake -S "$work/fmt" -B "$work/fmt/build" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" \
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+    -DFMT_TEST=OFF
+  cmake --build "$work/fmt/build" --parallel
+  cmake --install "$work/fmt/build"
+
+  rm -rf "$work"
 }
 
 install_json_from_source() {
@@ -118,13 +138,16 @@ ensure_single_macos_paho_prefix() {
 }
 
 install_macos() {
-  brew install cmake ninja fmt nlohmann-json openssl@3 pybind11
+  brew install cmake openssl@3
 
   INSTALL_PREFIX="${CMAKE_INSTALL_PREFIX:-$(brew --prefix)}"
   ensure_single_macos_paho_prefix "$INSTALL_PREFIX"
   export CMAKE_PREFIX_PATH="$INSTALL_PREFIX"
   export REPAIR_LIBRARY_PATH="$INSTALL_PREFIX/lib:$(brew --prefix openssl@3)/lib"
 
+  install_fmt_from_source
+  install_json_from_source
+  install_pybind11_from_source
   install_pybind11_json_from_source
   install_paho_from_source
 }
