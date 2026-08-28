@@ -35,7 +35,8 @@ install_linux() {
 
 git_shallow_clone() {
   if [ $# -lt 3 ]; then
-    echo "Error: git_shallow_clone $@"
+    echo "Error: git_shallow_clone"
+    echo "Bad parameters: $*"
     echo "Usage: git_shallow_clone <repo_url> <repo_dir> <repo_tag>"
     exit 1
   fi
@@ -43,17 +44,17 @@ git_shallow_clone() {
   local repo_dir=$1; shift
   local repo_tag=$1; shift
 
-  mkdir $repo_dir
-  git -C $repo_dir init -q
-  git -C $repo_dir remote add origin $repo_url
-  git -C $repo_dir fetch --depth 1 origin $repo_tag
-  git -C $repo_dir checkout -q $repo_tag
+  mkdir "$repo_dir"
+  git -C "$repo_dir" init -q
+  git -C "$repo_dir" remote add origin "$repo_url"
+  git -C "$repo_dir" fetch --depth 1 origin "$repo_tag"
+  git -C "$repo_dir" checkout -q "$repo_tag"
 }
 
 git_shallow_clone_recursive() {
   git_shallow_clone "$@"
   local repo_dir=${2:-.}
-  git -C $repo_dir submodule update --init --recursive --depth 1
+  git -C "$repo_dir" submodule update --init --recursive --depth 1
 }
 
 install_fmt_from_source() {
@@ -166,7 +167,7 @@ install_macos() {
   INSTALL_PREFIX="${CMAKE_INSTALL_PREFIX:-$(brew --prefix)}"
   ensure_single_macos_paho_prefix "$INSTALL_PREFIX"
   export CMAKE_PREFIX_PATH="$INSTALL_PREFIX"
-  export REPAIR_LIBRARY_PATH="$INSTALL_PREFIX/lib:$(brew --prefix openssl@3)/lib"
+  REPAIR_LIBRARY_PATH="$INSTALL_PREFIX/lib:$(brew --prefix openssl@3)/lib"; export REPAIR_LIBRARY_PATH
 
   install_fmt_from_source
   install_json_from_source
