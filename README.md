@@ -1,5 +1,7 @@
 # VDA5050 Library and Support Tools
 
+[![CI](https://github.com/ros-industrial/rmf_scheduler/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/ros-industrial/rmf_scheduler/actions/workflows/build.yml)
+
 This repository contains the source code for the C++ and Python libraries for
 implementing the [VDA5050 specification](https://github.com/VDA5050/VDA5050) across AGVs, AMRs and fleet control systems.
 
