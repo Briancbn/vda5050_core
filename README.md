@@ -102,7 +102,7 @@ sudo apt install \
     pybind11-json-dev
 ```
 
-2. Create a workspace and clone the repository:
+1. Create a workspace and clone the repository:
 
 ```bash
 mkdir -p ~/vda5050_ws/src
@@ -111,7 +111,7 @@ cd ~/vda5050_ws/src
 git clone https://github.com/ros-industrial/vda5050_core.git
 ```
 
-2. Build the package:
+1. Build the package:
 
 ```bash
 cd ~/vda5050_ws
@@ -145,7 +145,7 @@ Below are some quick examples
 
 #### AGV Client Integration
 
-The following examples shows the basic setup for an AGV-side client.
+The following example shows the basic setup for an AGV-side client.
 
 It creates an MQTT transport and a VDA5050 client adapter, then registers a navigation callback.
 In a real application, the callback should forward the request to the robot's navigation system.
