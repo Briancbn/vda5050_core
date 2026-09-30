@@ -20,6 +20,8 @@ The library can be embedded directly into standalone native C++ drivers, ROS 2 p
   - [Master Control Integration](#master-control-integration)
 - [Project Layout](#project-layout)
 - [Testing](#testing)
+- [Contributing](#contributing)
+- [License](#license)
 
 
 ## Features
@@ -69,7 +71,7 @@ To build a master control, or integrate one into an existing application, start 
 ### Binary packages
 
 > [!NOTE]
-> Binary packages is only available for Python right now
+> Binary packages are only available for Python right now
 
 #### Install from PyPI
 
@@ -84,13 +86,18 @@ pip install vda5050_core
 
 ### Build from source
 
-The following is an example for Ubuntu 22.04+
+The following instructions are for Ubuntu 22.04+
 
 1. Install the required build dependencies:
 
 ```bash
 sudo apt update
-sudo apt install libpaho-mqtt-dev libpaho-mqttpp-dev libfmt-dev nlohmann-json3-dev pybind11-json-dev
+sudo apt install \
+    libpaho-mqtt-dev \
+    libpaho-mqttpp-dev \
+    libfmt-dev \
+    nlohmann-json3-dev \
+    pybind11-json-dev
 ```
 
 2. Create a workspace and clone the repository:
@@ -141,7 +148,8 @@ The following examples shows the basic setup for an AGV-side client.
 It creates an MQTT transport and a VDA5050 client adapter, then registers a navigation callback.
 In a real application, the callback should forward the request to the robot's navigation system.
 
-##### In C++
+**In C++**
+
 ```cpp
 #include <iostream>
 
@@ -187,7 +195,7 @@ int main()
 }
 ```
 
-**Linking with CMake**
+Linking with CMake
 
 ```cmake
 find_package(vda5050_core REQUIRED)
@@ -200,7 +208,7 @@ target_link_libraries(agv_application
 )
 ```
 
-##### In Python
+**In Python**
 
 ```python
 from vda5050_core.rmf_migration import (
@@ -280,7 +288,7 @@ This assumes an AGV that is already localized and reporting state. See the
 [Master Guide](docs/master.md) for bringing an unlocalized vehicle up with an
 `initPosition` instant action.
 
-##### In C++
+**In C++**
 
 ```cpp
 #include <chrono>
@@ -349,7 +357,7 @@ int main()
 }
 ```
 
-**Linking with CMake**
+Linking with CMake
 
 ```cmake
 find_package(vda5050_core REQUIRED)
@@ -362,7 +370,7 @@ target_link_libraries(master_application
 )
 ```
 
-##### In Python
+**In Python**
 
 ```python
 from logging import getLogger
@@ -471,7 +479,8 @@ Run the unit and integration tests using `colcon`.
 colcon test --event-handlers console_direct+ --packages-select vda5050_core
 ```
 
-> Note: Some integration tests require an active MQTT broker listening on `localhost:1883`.
+> [!NOTE]
+> Some integration tests require an active MQTT broker listening on `localhost:1883`.
 
 ## Contributing
 
