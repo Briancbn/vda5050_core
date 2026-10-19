@@ -38,19 +38,19 @@ The library can be embedded directly into standalone native C++ drivers, ROS 2 p
   - Asynchronous execution
 
 - Client library
-  - order processing
-  - navigation callback
-  - action callbacks
-  - localization callbacks
-  - robot state reporting
+  - Order processing
+  - Navigation callback
+  - Action callbacks
+  - Localization callbacks
+  - Robot state reporting
   - Open-RMF migration
 
 - Master library
-  - robot onboarding / offboarding
-  - layout loading
-  - order assignment
-  - instant actions assignment
-  - event-based callback handling
+  - Robot onboarding / offboarding
+  - Layout loading
+  - Order assignment
+  - Instant actions assignment
+  - Event-based callback handling
 
 ## Detailed Guides
 
@@ -87,6 +87,12 @@ pip install vda5050_core
 ```
 
 ### Build from source
+
+Requirements
+- **C++ Compiler:** C++17 or higher
+- **Build System:** CMake $\ge$ 3.8, `colcon` (optional for ROS 2 workspaces)
+- **System Libraries:** `nlohmann-json3-dev`, `libfmt-dev`, `libpaho-mqtt-dev`, `libpaho-mqttpp-dev`
+- **Optional:** ROS 2 (Humble/Jazzy) for `vda5050_interfaces`, `pybind11` for Python bindings.
 
 The following instructions are for Ubuntu 22.04+
 
@@ -131,7 +137,15 @@ Pass these flags through `colcon build --cmake-args -D<OPTION>=<VALUE>` or direc
 
 ### Examples
 
-Sample applications can be found in the source repository at [vda5050_core/examples/](./vda5050_core/examples).
+Sample applications can be found in the source repository at [`vda5050_core/examples/`](./vda5050_core/examples).
+
+| Example                                  | Demonstrates                                                                    |
+| ---------------------------------------- | ------------------------------------------------------------------------------- |
+| `client/adapter_example.cpp`             | AGV client-adapter integration                                                  |
+| `python/rmf_migration_client_example.py` | AGV client-adapter integration, via Open-RMF migration Python bindings          |
+| `master/order_publisher.cpp`             | Continuously dispatching a growing VDA5050 order                                |
+| `master/master_example.cpp`              | Continuously assigning orders with a new id upon completion, via the master API |
+| `python/master_example.py`               | Observe AGV states, via the master Python bindings                              |
 
 These can all be build along with the library by specifying the CMake flag: `-DBUILD_EXAMPLES=ON` when configuring the build.
 
