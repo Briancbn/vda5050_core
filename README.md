@@ -98,31 +98,31 @@ The following instructions are for Ubuntu 22.04+
 
 1. Install the required build dependencies:
 
-```bash
-sudo apt update
-sudo apt install \
-    libpaho-mqtt-dev \
-    libpaho-mqttpp-dev \
-    libfmt-dev \
-    nlohmann-json3-dev \
-    pybind11-json-dev
-```
+   ```bash
+   sudo apt update
+   sudo apt install \
+       libpaho-mqtt-dev \
+       libpaho-mqttpp-dev \
+       libfmt-dev \
+       nlohmann-json3-dev \
+       pybind11-json-dev
+   ```
 
 1. Create a workspace and clone the repository:
 
-```bash
-mkdir -p ~/vda5050_ws/src
-cd ~/vda5050_ws/src
+   ```bash
+   mkdir -p ~/vda5050_ws/src
+   cd ~/vda5050_ws/src
 
-git clone https://github.com/ros-industrial/vda5050_core.git
-```
+   git clone https://github.com/ros-industrial/vda5050_core.git
+   ```
 
 1. Build the package:
 
-```bash
-cd ~/vda5050_ws
-colcon build
-```
+   ```bash
+   cd ~/vda5050_ws
+   colcon build
+   ```
 
 #### Build Options
 
@@ -135,7 +135,7 @@ Pass these flags through `colcon build --cmake-args -D<OPTION>=<VALUE>` or direc
 | `BUILD_EXAMPLES` | `ON`    | Builds the examples                                     |
 | `BUILD_TESTING`  | `ON`    | Builds the tests and configured linters                 |
 
-### Examples
+## Examples
 
 Sample applications can be found in the source repository at [`vda5050_core/examples/`](./vda5050_core/examples).
 
@@ -157,7 +157,7 @@ mosquitto -v -p 1883
 
 Below are some quick examples
 
-#### AGV Client Integration
+### AGV Client Integration
 
 The following example shows the basic setup for an AGV-side client.
 
@@ -293,7 +293,7 @@ if __name__ == "__main__":
 For a complete integration covering navigation, actions, localization, cancellation and state reporting,
 see the [Client Adapter Guide](docs/client-adapter.md) and [Open-RMF Migration Guide](docs/rmf-migration.md).
 
-#### Master Control Integration
+### Master Control Integration
 
 The following example shows the basic setup for a master.
 
